@@ -971,6 +971,8 @@ def dump_F_uses(uses):
             mpi_f08_list_3.append(a)
         elif re.match(r'MPI_[A-Z_]+$', a):
             mpi_f08_list_2.append(a)
+        elif re.match(r'MPIX_\w+_(function|FN|FN_NULL)(_c)?$', a, re.IGNORECASE):
+            mpi_f08_list_4.append(a)
         elif re.match(r'MPIX?_\w+', a):
             mpi_f08_list_1.append(a)
         elif re.match(r'assignment', a):
