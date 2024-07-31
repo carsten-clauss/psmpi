@@ -144,6 +144,16 @@ static int pmi1_barrier_local(void)
     return pmi1_barrier();
 }
 
+static int pmi1_barrier_group(int *group, int count)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_ERR_SET1(mpi_errno, MPI_ERR_INTERN, "**pmi_unsupported",
+                  "**pmi_unsupported %s", "PMI_Barrier_group");
+
+    return mpi_errno;
+}
+
 static int pmi1_optimized_put(const char *key, const char *val, int is_local)
 {
     return pmi1_put(key, val);
@@ -404,6 +414,11 @@ static int pmi1_barrier(void)
 }
 
 static int pmi1_barrier_local(void)
+{
+    return MPI_ERR_INTERN;
+}
+
+static int pmi1_barrier_group(int *group, int count)
 {
     return MPI_ERR_INTERN;
 }
