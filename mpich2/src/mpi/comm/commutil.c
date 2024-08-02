@@ -328,6 +328,8 @@ int MPII_Comm_init(MPIR_Comm * comm_p)
     /* Initialize the session_ptr to NULL; for non-session-related communicators it will remain NULL */
     comm_p->session_ptr = NULL;
 
+    comm_p->committed = 0;
+
     /* Fields not set include context_id, remote and local size, and
      * kind, since different communicator construction routines need
      * different values */
@@ -831,6 +833,9 @@ int MPIR_Comm_commit(MPIR_Comm * comm)
         MPIR_ERR_CHECK(mpi_errno);
     }
 
+    /* Mark comm as committed */
+    comm->committed = 1;
+
   fn_exit:
     MPIR_FUNC_EXIT;
     return mpi_errno;
@@ -1142,7 +1147,10 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
     if (mpi_errno == MPI_SUCCESS) {
         bool do_message_check = false;
 #if defined(HAVE_ERROR_CHECKING)
-        do_message_check = true;
+        if (comm_ptr->committed) {
+            /* Message check only if comm was committed successfully */
+            do_message_check = true;
+        }
 #endif
 #if defined(MPICH_IS_THREADED) && MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__VCI
         /* anysrc/anytag probe is extremely messy with pervci thread-cs. Avoid for for now. */
@@ -1222,8 +1230,15 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
          * to races once we make threading finer grained. */
         /* This must be the recvcontext_id (i.e. not the (send)context_id)
          * because in the case of intercommunicators the send context ID is
-         * allocated out of the remote group's bit vector, not ours. */
-        MPIR_Free_contextid(comm_ptr->recvcontext_id);
+         * allocated out of the remote group's bit vector, not ours.
+         *
+         * If the recvcontext id is the temporary session context id here, we
+         * are deleting a comm that is not properly initialized (something went
+         * wrong during commit most likely). No need to free the context id in
+         * this case. */
+        if (comm_ptr->recvcontext_id != MPIR_COMM_TMP_SESSION_CTXID) {
+            MPIR_Free_contextid(comm_ptr->recvcontext_id);
+        }
 
         {
             int thr_err;

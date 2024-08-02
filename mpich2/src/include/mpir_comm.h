@@ -217,6 +217,7 @@ struct MPIR_Comm {
      * nor intercomms (even after its merge).
      */
     int tainted;
+    int committed;              /* 0 means MPIR_Comm_commit was not called for comm or did not complete without errors */
 
 
     int hints[MPIR_COMM_HINT_MAX];      /* Hints to the communicator
@@ -247,6 +248,7 @@ struct MPIR_Comm {
         int topo_wave_tree_lat_diff_switches;
         int topo_wave_tree_lat_same_switches;
         MPIR_Treealgo_tree_t *topo_wave_tree;
+        int initialized;
     } coll;
 
     void *csel_comm;            /* collective selector handle */
