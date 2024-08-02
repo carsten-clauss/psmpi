@@ -124,6 +124,10 @@ void MPIDI_VCRT_Destroy(MPIDI_VCRT_t * vcrt, int isDisconnect)
 
 int MPIDI_VCRT_Release(MPIDI_VCRT_t * vcrt, int isDisconnect)
 {
+    if (!vcrt) {
+        return MPI_SUCCESS;
+    }
+
     Dprintf("(vcrt=%p), refcnt=%d, isDisconnect=%d", vcrt, vcrt->refcnt, isDisconnect);
 
     vcrt->refcnt--;
