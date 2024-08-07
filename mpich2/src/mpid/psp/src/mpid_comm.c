@@ -141,66 +141,104 @@ int MPIDI_PSP_lookup_badge(int pg_rank, int degree, int *badge, int normalize)
 }
 
 static
-int MPIDI_PSP_create_badge_table(int degree, int my_badge, int my_pg_rank, int pg_size,
-                                 int *max_badge, int **badge_table, int normalize)
+int MPIDI_PSP_update_badge_table(int degree, int my_badge, MPIR_Comm * comm,
+                                 int normalize, bool second_run)
 {
     int mpi_errno = MPI_SUCCESS;
     int grank;
+    int pg_rank = MPIDI_Process.my_pg_rank;
+    int pg_size = MPIDI_Process.my_pg_size;
+    MPIDI_PSP_topo_level_t *level = NULL;
+    bool fast_path = true;
 
-    if (*badge_table != NULL) {
+    int *lpids = NULL;
+    int size = 0, rank = -1;    /* rank not required here */
+    mpi_errno = MPIDI_PSP_comm_get_my_pg_lpids(comm, &lpids, &size, &rank);
+    MPIR_ERR_CHECK(mpi_errno);
 
+    /* Find topo level for degree in the global list */
+    if (!MPIDI_PSP_check_pg_for_level(degree, MPIDI_Process.my_pg, &level)) {
+        goto fn_exit;
+    }
+
+    /* Sanity check */
+    MPIR_Assert(level);
+
+    /* Normalized badges are not unique and thus cannot be global! */
+    MPIR_Assert(!normalize || (normalize && !level->badges_are_global));
+
+    if (!second_run) {
+        /* Check if there are badges missing for comm */
+        for (int i = 0; i < size; i++) {
+            int dest = lpids ? lpids[i] : i;
+            if (level->badge_table[dest] == MPIDI_PSP_TOPO_BADGE__NULL) {
+                fast_path = false;      /* There is at least one badge missing */
+                break;
+            }
+        }
+
+        if (fast_path) {
+            /* Nothing to be done here */
+            goto fn_exit;
+        }
+    } else {
         /* When we get here, it is already the second round for normalizing,
          * which itself must not be further normalized. (See assertion.) */
         MPIR_Assert(!normalize);
 
         for (grank = 0; grank < pg_size; grank++) {
-            if (my_badge == (*badge_table)[grank]) {
+            if (my_badge == level->badge_table[grank]) {
                 my_badge = grank;
                 break;
             }
         }
-
-        MPL_free(*badge_table);
     }
-
-    *badge_table = MPL_malloc(pg_size * sizeof(int), MPL_MEM_OBJECT);
-    MPIR_ERR_CHKANDJUMP(!(*badge_table), mpi_errno, MPI_ERR_NO_MEM, "**nomem");
 
     if (pg_size == 1) {
 
         /* Use shortcut w/o badge exchange in the MPI singleton case: */
-        (*badge_table)[0] = my_badge;
+        level->badge_table[0] = my_badge;
 
     } else {
 
         /* The exchange of the badge information is done here via the key/value space (KVS) of PMI(x).
          * This way, no (perhaps later unnecessary) pscom connections are already established at this point. */
-        mpi_errno = MPIDI_PSP_publish_badge(my_pg_rank, degree, my_badge, normalize);
+        mpi_errno = MPIDI_PSP_publish_badge(pg_rank, degree, my_badge, normalize);
         MPIR_ERR_CHECK(mpi_errno);
 
-        mpi_errno = MPIR_pmi_barrier();
+        if (lpids && (size < MPIDI_Process.my_pg_size)) {
+            mpi_errno = MPIR_pmi_barrier_group(lpids, size);
+        } else {
+            /* Use world barrier for world comm and comms that have size of world comm */
+            mpi_errno = MPIR_pmi_barrier();
+        }
         MPIR_ERR_CHECK(mpi_errno);
 
-        for (grank = 0; grank < pg_size; grank++) {
-            mpi_errno = MPIDI_PSP_lookup_badge(grank, degree, &(*badge_table)[grank], normalize);
+        /* Lookup the badges of processes in comm and save them in badge table */
+        for (int i = 0; i < size; i++) {
+            int dest = lpids ? lpids[i] : i;
+            mpi_errno =
+                MPIDI_PSP_lookup_badge(dest, degree, &(level->badge_table)[dest], normalize);
             MPIR_ERR_CHECK(mpi_errno);
         }
     }
 
-    *max_badge = (*badge_table)[0];
+    level->max_badge = level->badge_table[0];
     for (grank = 1; grank < pg_size; grank++) {
-        if ((*badge_table)[grank] > *max_badge)
-            *max_badge = (*badge_table)[grank];
+        if (level->badge_table[grank] > level->max_badge) {
+            level->max_badge = level->badge_table[grank];
+        }
     }
 
-    if (*max_badge >= pg_size && normalize) {
+    if (level->max_badge >= pg_size && normalize) {
+        /* For normalization do a second run */
         mpi_errno =
-            MPIDI_PSP_create_badge_table(degree, my_badge, my_pg_rank, pg_size, max_badge,
-                                         badge_table, !normalize /* == 0 */);
+            MPIDI_PSP_update_badge_table(degree, my_badge, comm, !normalize /* == 0 */ , true);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
   fn_exit:
+    MPL_free(lpids);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -298,30 +336,23 @@ int MPIDI_PSP_comm_is_flat_on_level(MPIR_Comm * comm, MPIDI_PSP_topo_level_t * l
     return 1;
 }
 
+#ifdef MPID_PSP_MSA_AWARE_COLLOPS
 static
-int MPIDI_PSP_create_topo_level(int my_badge, int degree, int badges_are_global, int normalize,
-                                MPIDI_PSP_topo_level_t ** topo_level)
+int MPIDI_PSP_init_topo_level(int degree, int badges_are_global,
+                              MPIDI_PSP_topo_level_t ** topo_level)
 {
     int mpi_errno = MPI_SUCCESS;
-    int *module_badge_table = NULL;
-    int module_max_badge = 0;
     MPIDI_PSP_topo_level_t *level = NULL;
-
-    int pg_rank = MPIDI_Process.my_pg_rank;
     int pg_size = MPIDI_Process.my_pg_size;
-
-    // Normalized badges are not unique and thus cannot be global!
-    MPIR_Assert(!normalize || (normalize && !badges_are_global));
-
-    mpi_errno = MPIDI_PSP_create_badge_table(degree, my_badge, pg_rank, pg_size, &module_max_badge,
-                                             &module_badge_table, normalize);
-    MPIR_ERR_CHECK(mpi_errno);
-    MPIR_Assert(module_badge_table);
 
     level = MPL_malloc(sizeof(MPIDI_PSP_topo_level_t), MPL_MEM_OBJECT);
     MPIR_ERR_CHKANDJUMP(!level, mpi_errno, MPI_ERR_NO_MEM, "**nomem");
-    level->badge_table = module_badge_table;
-    level->max_badge = module_max_badge;
+    level->badge_table = MPL_malloc(pg_size * sizeof(int), MPL_MEM_OBJECT);
+    MPIR_ERR_CHKANDJUMP(!(level->badge_table), mpi_errno, MPI_ERR_NO_MEM, "**nomem");
+    for (int i = 0; i < pg_size; i++) {
+        level->badge_table[i] = MPIDI_PSP_TOPO_BADGE__NULL;
+    }
+    level->max_badge = -1;
     level->degree = degree;
     level->badges_are_global = badges_are_global;
 
@@ -333,6 +364,32 @@ int MPIDI_PSP_create_topo_level(int my_badge, int degree, int badges_are_global,
   fn_fail:
     goto fn_exit;
 }
+
+static
+int MPIDI_PSP_update_topo_level(MPIR_Comm * comm)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    if (MPIDI_Process.env.enable_msa_awareness && MPIDI_Process.env.enable_msa_aware_collops) {
+        mpi_errno = MPIDI_PSP_update_badge_table(MPIDI_PSP_TOPO_LEVEL__MODULES,
+                                                 MPIDI_Process.msa_module_id,
+                                                 comm, 0 /*normalize */ , false);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+    if (MPIDI_Process.env.enable_smp_awareness && MPIDI_Process.env.enable_smp_aware_collops) {
+        mpi_errno = MPIDI_PSP_update_badge_table(MPIDI_PSP_TOPO_LEVEL__NODES,
+                                                 MPIDI_Process.smp_node_id,
+                                                 comm, 1 /*normalize */ , false);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+#endif
 
 int MPID_Get_badge(MPIR_Comm * comm, int rank, int *badge_p)
 {
@@ -398,10 +455,8 @@ int MPIDI_PSP_topo_init(MPIDI_PSP_topo_level_t ** topo_levels)
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
         if (MPIDI_Process.env.enable_msa_aware_collops) {
             mpi_errno =
-                MPIDI_PSP_create_topo_level(MPIDI_Process.msa_module_id,
-                                            MPIDI_PSP_TOPO_LEVEL__MODULES,
-                                            1 /*badges_are_global */ , 0 /*normalize */ ,
-                                            topo_levels);
+                MPIDI_PSP_init_topo_level(MPIDI_PSP_TOPO_LEVEL__MODULES, 1 /*badges_are_global */ ,
+                                          topo_levels);
             MPIR_ERR_CHECK(mpi_errno);
         }
 #endif
@@ -423,9 +478,8 @@ int MPIDI_PSP_topo_init(MPIDI_PSP_topo_level_t ** topo_levels)
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
         if (MPIDI_Process.env.enable_smp_aware_collops) {
             mpi_errno =
-                MPIDI_PSP_create_topo_level(MPIDI_Process.smp_node_id, MPIDI_PSP_TOPO_LEVEL__NODES,
-                                            0 /*badges_are_global */ , 1 /*normalize */ ,
-                                            topo_levels);
+                MPIDI_PSP_init_topo_level(MPIDI_PSP_TOPO_LEVEL__NODES, 0 /*badges_are_global */ ,
+                                          topo_levels);
             MPIR_ERR_CHECK(mpi_errno);
         }
 #endif
@@ -624,6 +678,12 @@ int MPIDI_PSP_Comm_commit_pre_hook(MPIR_Comm * comm)
 
         mpi_errno = MPIDI_PSP_connection_init(comm);
         MPIR_ERR_CHECK(mpi_errno);
+
+#ifdef MPID_PSP_MSA_AWARE_COLLOPS
+        /* Update the hierarchical topology information of the comm as used for MSA-aware collectives. */
+        mpi_errno = MPIDI_PSP_update_topo_level(comm);
+        MPIR_ERR_CHECK(mpi_errno);
+#endif
     }
 
     if (comm->mapper_head) {
