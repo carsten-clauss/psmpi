@@ -340,21 +340,17 @@ int MPID_Init(int requested, int *provided)
 
     mpid_add_finalize_callbacks();
 
-    mpi_errno = MPIDI_PSP_grank2con_mapping_init();
-    MPIR_ERR_CHECK(mpi_errno);
-
-    mpi_errno = MPIDI_PSP_grank2ep_str_mapping_init();
-    MPIR_ERR_CHECK(mpi_errno);
-
     mpi_errno = MPIDI_PSP_socket_init();
-    MPIR_ERR_CHECK(mpi_errno);
-
-    /* Init connections for world comm (NULL) */
-    mpi_errno = MPIDI_PSP_connection_init(NULL);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Init global PG, representing the group of processes started together with me (my_pg). */
     mpi_errno = MPIDI_PSP_PG_init();
+    MPIR_ERR_CHECK(mpi_errno);
+
+    mpi_errno = MPIDI_PSP_grank2con_mapping_init();
+    MPIR_ERR_CHECK(mpi_errno);
+
+    mpi_errno = MPIDI_PSP_grank2ep_str_mapping_init();
     MPIR_ERR_CHECK(mpi_errno);
 
     MPID_PSP_shm_rma_init();

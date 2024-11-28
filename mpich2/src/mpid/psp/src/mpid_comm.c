@@ -616,6 +616,16 @@ int MPIDI_PSP_Comm_commit_pre_hook(MPIR_Comm * comm)
 
     MPIR_FUNC_ENTER;
 
+    if (comm->comm_kind == MPIR_COMM_KIND__INTRACOMM &&
+        !MPIR_CONTEXT_READ_FIELD(SUBCOMM, comm->context_id)) {
+        /* Make sure this is not a subcomm */
+        comm->pscom_socket = NULL;
+        comm->vcrt = NULL;
+
+        mpi_errno = MPIDI_PSP_connection_init(comm);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
     if (comm->mapper_head) {
         MPID_PSP_comm_create_mapper(comm);
     }
@@ -710,6 +720,8 @@ int MPIDI_PSP_Comm_commit_pre_hook(MPIR_Comm * comm)
   fn_exit:
     MPIR_FUNC_EXIT;
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 int MPIDI_PSP_Comm_commit_post_hook(MPIR_Comm * comm)

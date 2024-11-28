@@ -211,6 +211,14 @@ void grank2con_set(int dest_grank, pscom_connection_t * con)
     MPIR_Assert(dest_grank < pg_size);
 
     MPIDI_Process.grank2con[dest_grank] = con;
+
+    /* Update con in the world group vcr and cons if world group already exists
+     * i.e, it is not the first time that connections are created through a new communicator
+     * and we are adding a new connection */
+    if (MPIDI_Process.my_pg != NULL) {
+        MPIDI_Process.my_pg->vcr[dest_grank]->con = con;
+        MPIDI_Process.my_pg->cons[dest_grank] = con;
+    }
 }
 
 /* return connection */
@@ -232,7 +240,13 @@ int MPIDI_PSP_grank2con_mapping_init(void)
     int pg_size = MPIDI_Process.my_pg_size;
 
     if (MPIDI_Process.grank2con) {
-        /* Re-init, connections kept open */
+        /* Re-init, connections kept open, insert them back to my_pg */
+        if (MPIDI_Process.my_pg != NULL) {
+            for (i = 0; i < pg_size; i++) {
+                MPIDI_Process.my_pg->vcr[i]->con = grank2con_get(i);
+                MPIDI_Process.my_pg->cons[i] = grank2con_get(i);
+            }
+        }
         MPIR_Assert(MPIDI_Process.env.enable_keep_connections >= 1);
         goto fn_exit;
     }
