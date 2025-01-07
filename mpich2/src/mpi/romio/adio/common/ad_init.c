@@ -8,6 +8,8 @@
 
 ADIOI_Datarep *ADIOI_Datarep_head = NULL;
     /* list of datareps registered by the user */
+ADIOI_Compressor *ADIOI_Compressor_head = NULL;
+    /* list of compressors registered by the user */
 
 /* for f2c and c2f conversion */
 ADIO_File *ADIOI_Ftable = NULL;

@@ -112,6 +112,24 @@ typedef struct ADIOI_Datarep {
     struct ADIOI_Datarep *next; /* pointer to next datarep */
 } ADIOI_Datarep;
 
+typedef struct ADIOI_Compressor {
+    char *name;
+    void *state;
+    int is_large;
+    MPI_Datarep_extent_function *extent_fn;
+    union {
+        struct {
+            MPI_Datarep_conversion_function *read_conv_fn;
+            MPI_Datarep_conversion_function *write_conv_fn;
+        } small;
+        struct {
+            MPI_Datarep_conversion_function_c *read_conv_fn;
+            MPI_Datarep_conversion_function_c *write_conv_fn;
+        } large;
+    } u;
+    struct ADIOI_Compressor *next;      /* pointer to next datarep */
+} ADIOI_Compressor;
+
 /* Values for use with cb_read, cb_write, ds_read, and ds_write
  * and some fs-specific hints
    (IBM xlc, Compaq Tru64 compilers object to a comma after the last item)

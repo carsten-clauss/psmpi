@@ -61,13 +61,13 @@ int MPIOI_Register_compressor(const char *compressor_name,
                               void *extra_state, int is_large)
 {
     int error_code;
-    ADIOI_Datarep *adio_datarep;
+    ADIOI_Compressor *adio_compressor;
     static char myname[] = "MPI_REGISTER_COMPRESSOR";
 
     ROMIO_THREAD_CS_ENTER();
 
     /* --BEGIN ERROR HANDLING-- */
-    /* check datarep name (use strlen instead of strnlen because
+    /* check compressor name (use strlen instead of strnlen because
      * strnlen is not portable) */
     if (compressor_name == NULL || strlen(compressor_name) < 1 ||
         strlen(compressor_name) > MPIX_MAX_COMPRESSOR_STRING) {
@@ -84,9 +84,10 @@ int MPIOI_Register_compressor(const char *compressor_name,
         goto fn_exit;
 
     /* --BEGIN ERROR HANDLING-- */
-    /* check datarep isn't already registered */
-    for (adio_datarep = ADIOI_Datarep_head; adio_datarep; adio_datarep = adio_datarep->next) {
-        if (!strncmp(compressor_name, adio_datarep->name, MPIX_MAX_COMPRESSOR_STRING)) {
+    /* check compressor isn't already registered */
+    for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
+         adio_compressor = adio_compressor->next) {
+        if (!strncmp(compressor_name, adio_compressor->name, MPIX_MAX_COMPRESSOR_STRING)) {
             error_code = MPIO_Err_create_code(MPI_SUCCESS,
                                               MPIR_ERR_RECOVERABLE,
                                               myname, __LINE__,
@@ -119,24 +120,25 @@ int MPIOI_Register_compressor(const char *compressor_name,
     }
     /* --END ERROR HANDLING-- */
 
-    adio_datarep = ADIOI_Malloc(sizeof(ADIOI_Datarep));
-    adio_datarep->name = ADIOI_Strdup(compressor_name);
-    adio_datarep->state = extra_state;
-    adio_datarep->is_large = is_large;
+    adio_compressor = ADIOI_Malloc(sizeof(ADIOI_Compressor));
+    adio_compressor->name = ADIOI_Strdup(compressor_name);
+    adio_compressor->state = extra_state;
+    adio_compressor->is_large = is_large;
     if (is_large) {
-        adio_datarep->u.large.read_conv_fn =
+        adio_compressor->u.large.read_conv_fn =
             (MPI_Datarep_conversion_function_c *) read_conversion_fn;
-        adio_datarep->u.large.write_conv_fn =
+        adio_compressor->u.large.write_conv_fn =
             (MPI_Datarep_conversion_function_c *) write_conversion_fn;
     } else {
-        adio_datarep->u.small.read_conv_fn = (MPI_Datarep_conversion_function *) read_conversion_fn;
-        adio_datarep->u.small.write_conv_fn =
+        adio_compressor->u.small.read_conv_fn =
+            (MPI_Datarep_conversion_function *) read_conversion_fn;
+        adio_compressor->u.small.write_conv_fn =
             (MPI_Datarep_conversion_function *) write_conversion_fn;
     }
-    adio_datarep->extent_fn = dtype_file_extent_fn;
-    adio_datarep->next = ADIOI_Datarep_head;
+    adio_compressor->extent_fn = dtype_file_extent_fn;
+    adio_compressor->next = ADIOI_Compressor_head;
 
-    ADIOI_Datarep_head = adio_datarep;
+    ADIOI_Compressor_head = adio_compressor;
 
     error_code = MPI_SUCCESS;
 
