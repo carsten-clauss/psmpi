@@ -115,18 +115,9 @@ typedef struct ADIOI_Datarep {
 typedef struct ADIOI_Compressor {
     char *name;
     void *state;
-    int is_large;
     MPI_Datarep_extent_function *extent_fn;
-    union {
-        struct {
-            MPI_Datarep_conversion_function *read_conv_fn;
-            MPI_Datarep_conversion_function *write_conv_fn;
-        } small;
-        struct {
-            MPI_Datarep_conversion_function_c *read_conv_fn;
-            MPI_Datarep_conversion_function_c *write_conv_fn;
-        } large;
-    } u;
+    MPIX_Compressor_function *read_conv_fn;
+    MPIX_Compressor_function *write_conv_fn;
     struct ADIOI_Compressor *next;      /* pointer to next datarep */
 } ADIOI_Compressor;
 
@@ -865,8 +856,8 @@ int MPIOI_Register_datarep(const char *datarep,
                            void *extra_state, int is_large);
 
 int MPIOI_Register_compressor(const char *compressor_name,
-                              MPIOI_VOID_FN * read_conversion_fn,
-                              MPIOI_VOID_FN * write_conversion_fn,
+                              MPIX_Compressor_function * read_conversion_fn,
+                              MPIX_Compressor_function * write_conversion_fn,
                               MPI_Datarep_extent_function * dtype_file_extent_fn,
                               void *extra_state, int is_large);
 

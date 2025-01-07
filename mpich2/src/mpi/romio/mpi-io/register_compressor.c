@@ -13,8 +13,8 @@
 /* end of weak pragmas */
 #elif defined(HAVE_WEAK_ATTRIBUTE)
 int MPIX_Register_compressor(const char *compressor_name,
-                             MPI_Datarep_conversion_function * read_conversion_fn,
-                             MPI_Datarep_conversion_function * write_conversion_fn,
+                             MPIX_Compressor_function * read_conversion_fn,
+                             MPIX_Compressor_function * write_conversion_fn,
                              MPI_Datarep_extent_function * dtype_file_extent_fn, void *extra_state)
     __attribute__ ((weak, alias("PMPIX_Register_compressor")));
 #endif
@@ -43,8 +43,8 @@ Input Parameters:
   @*/
 
 int MPIX_Register_compressor(ROMIO_CONST char *compressor_name,
-                             MPI_Datarep_conversion_function * read_conversion_fn,
-                             MPI_Datarep_conversion_function * write_conversion_fn,
+                             MPIX_Compressor_function * read_conversion_fn,
+                             MPIX_Compressor_function * write_conversion_fn,
                              MPI_Datarep_extent_function * dtype_file_extent_fn, void *extra_state)
 {
     int is_large = false;
@@ -55,8 +55,8 @@ int MPIX_Register_compressor(ROMIO_CONST char *compressor_name,
 
 #ifdef MPIO_BUILD_PROFILING
 int MPIOI_Register_compressor(const char *compressor_name,
-                              MPIOI_VOID_FN * read_conversion_fn,
-                              MPIOI_VOID_FN * write_conversion_fn,
+                              MPIX_Compressor_function * read_conversion_fn,
+                              MPIX_Compressor_function * write_conversion_fn,
                               MPI_Datarep_extent_function * dtype_file_extent_fn,
                               void *extra_state, int is_large)
 {
@@ -123,18 +123,8 @@ int MPIOI_Register_compressor(const char *compressor_name,
     adio_compressor = ADIOI_Malloc(sizeof(ADIOI_Compressor));
     adio_compressor->name = ADIOI_Strdup(compressor_name);
     adio_compressor->state = extra_state;
-    adio_compressor->is_large = is_large;
-    if (is_large) {
-        adio_compressor->u.large.read_conv_fn =
-            (MPI_Datarep_conversion_function_c *) read_conversion_fn;
-        adio_compressor->u.large.write_conv_fn =
-            (MPI_Datarep_conversion_function_c *) write_conversion_fn;
-    } else {
-        adio_compressor->u.small.read_conv_fn =
-            (MPI_Datarep_conversion_function *) read_conversion_fn;
-        adio_compressor->u.small.write_conv_fn =
-            (MPI_Datarep_conversion_function *) write_conversion_fn;
-    }
+    adio_compressor->read_conv_fn = (MPIX_Compressor_function *) read_conversion_fn;
+    adio_compressor->write_conv_fn = (MPIX_Compressor_function *) write_conversion_fn;
     adio_compressor->extent_fn = dtype_file_extent_fn;
     adio_compressor->next = ADIOI_Compressor_head;
 
