@@ -73,7 +73,7 @@ int MPIOI_Register_compressor(const char *compressor_name,
         strlen(compressor_name) > MPIX_MAX_COMPRESSOR_STRING) {
         error_code =
             MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_ARG,
-                                 "**datarepname", 0);
+                                 "**compressorname", 0);
         error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
         goto fn_exit;
     }
@@ -90,8 +90,9 @@ int MPIOI_Register_compressor(const char *compressor_name,
             error_code = MPIO_Err_create_code(MPI_SUCCESS,
                                               MPIR_ERR_RECOVERABLE,
                                               myname, __LINE__,
-                                              MPI_ERR_DUP_DATAREP,
-                                              "**datarepused", "**datarepused %s", compressor_name);
+                                              MPIX_ERR_DUP_COMPRESSOR,
+                                              "**compressorused", "**compressorused %s",
+                                              compressor_name);
             error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
             goto fn_exit;
         }
