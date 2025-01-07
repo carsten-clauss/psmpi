@@ -846,6 +846,12 @@ int MPIOI_Register_datarep(const char *datarep,
                            MPI_Datarep_extent_function * dtype_file_extent_fn,
                            void *extra_state, int is_large);
 
+int MPIOI_Register_compressor(const char *compressor_name,
+                              MPIOI_VOID_FN * read_conversion_fn,
+                              MPIOI_VOID_FN * write_conversion_fn,
+                              MPI_Datarep_extent_function * dtype_file_extent_fn,
+                              void *extra_state, int is_large);
+
 /* Unix-style file locking */
 
 #if defined(F_SETLKW64)

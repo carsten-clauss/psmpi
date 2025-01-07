@@ -306,7 +306,8 @@ def get_mpiio_func_list():
         "MPI_File_write_ordered_begin",
         "MPI_File_write_ordered_end",
         "MPI_File_write_shared",
-        "MPI_Register_datarep"
+        "MPI_Register_datarep",
+        "MPIX_Register_compressor"
     ]
     return [G.FUNCS[a.lower()] for a in io_func_name_list]
 
