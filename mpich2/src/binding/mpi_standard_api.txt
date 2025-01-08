@@ -1769,9 +1769,9 @@ MPI_Register_datarep:
     extra_state: EXTRA_STATE, [extra state]
 MPIX_Register_compressor:
     compressor_name: STRING, constant=True, [data representation identifier]
-    read_conversion_fn: POLYFUNCTION, func_type=MPI_Datarep_conversion_function, [function invoked to convert from file representation to native representation]
-    write_conversion_fn: POLYFUNCTION, func_type=MPI_Datarep_conversion_function, [function invoked to convert from native representation to file representation]
-    dtype_file_extent_fn: FUNCTION, func_type=MPI_Datarep_extent_function, [function invoked to get the extent of a datatype as represented in the file]
+    compressor_init_fn: POLYFUNCTION, func_type=MPIX_Compressor_function, [function invoked to initialize a payload compressor]
+    compressor_deflate_fn: POLYFUNCTION, func_type=MPIX_Compressor_function, [function invoked to deflate payload buffer]
+    compressor_inflate_fn: POLYFUNCTION, func_type=MPIX_Compressor_function, [function invoked to inflate a payload buffer again]
     extra_state: EXTRA_STATE, [extra state]
 MPI_Request_c2f:
     .return: F90_REQUEST

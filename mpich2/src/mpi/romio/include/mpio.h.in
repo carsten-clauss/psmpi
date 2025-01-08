@@ -243,9 +243,9 @@ int MPI_Register_datarep(const char *datarep, MPI_Datarep_conversion_function *r
 			 MPI_Datarep_conversion_function *write_conversion_fn,
 			 MPI_Datarep_extent_function *dtype_file_extent_fn, void *extra_state) ROMIO_API_PUBLIC;
 
-int MPIX_Register_compressor(const char *compressor_name, MPIX_Compressor_function *read_conversion_fn,
-			 MPIX_Compressor_function *write_conversion_fn,
-			 MPI_Datarep_extent_function *dtype_file_extent_fn, void *extra_state) ROMIO_API_PUBLIC;
+int MPIX_Register_compressor(const char *compressor_name, MPIX_Compressor_function *compressor_init_fn,
+			 MPIX_Compressor_function *compressor_deflate_fn,
+			 MPIX_Compressor_function *compressor_inflate_fn, void *extra_state) ROMIO_API_PUBLIC;
 
 /* Section 9.6.1 */
 int MPI_File_set_atomicity(MPI_File fh, int flag) ROMIO_API_PUBLIC;
@@ -553,7 +553,7 @@ int PMPI_Register_datarep(const char *,
 int PMPIX_Register_compressor(const char *,
 			 MPIX_Compressor_function *,
 			 MPIX_Compressor_function *,
-			 MPI_Datarep_extent_function *,
+			 MPIX_Compressor_function *,
 			 void *) ROMIO_API_PUBLIC;
 
 /* Section 9.6.1 */

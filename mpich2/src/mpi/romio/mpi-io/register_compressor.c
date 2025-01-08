@@ -13,9 +13,9 @@
 /* end of weak pragmas */
 #elif defined(HAVE_WEAK_ATTRIBUTE)
 int MPIX_Register_compressor(const char *compressor_name,
-                             MPIX_Compressor_function * read_conversion_fn,
-                             MPIX_Compressor_function * write_conversion_fn,
-                             MPI_Datarep_extent_function * dtype_file_extent_fn, void *extra_state)
+                             MPIX_Compressor_function * compressor_init_fn,
+                             MPIX_Compressor_function * compressor_deflate_fn,
+                             MPIX_Compressor_function * compressor_inflate_fn, void *extra_state)
     __attribute__ ((weak, alias("PMPIX_Register_compressor")));
 #endif
 
@@ -43,22 +43,19 @@ Input Parameters:
   @*/
 
 int MPIX_Register_compressor(ROMIO_CONST char *compressor_name,
-                             MPIX_Compressor_function * read_conversion_fn,
-                             MPIX_Compressor_function * write_conversion_fn,
-                             MPI_Datarep_extent_function * dtype_file_extent_fn, void *extra_state)
+                             MPIX_Compressor_function * compressor_init_fn,
+                             MPIX_Compressor_function * compressor_deflate_fn,
+                             MPIX_Compressor_function * compressor_inflate_fn, void *extra_state)
 {
-    int is_large = false;
-    return MPIOI_Register_compressor(compressor_name, (MPIOI_VOID_FN *) read_conversion_fn,
-                                     (MPIOI_VOID_FN *) write_conversion_fn,
-                                     dtype_file_extent_fn, extra_state, is_large);
+    return MPIOI_Register_compressor(compressor_name, compressor_init_fn,
+                                     compressor_deflate_fn, compressor_inflate_fn, extra_state);
 }
 
 #ifdef MPIO_BUILD_PROFILING
 int MPIOI_Register_compressor(const char *compressor_name,
-                              MPIX_Compressor_function * read_conversion_fn,
-                              MPIX_Compressor_function * write_conversion_fn,
-                              MPI_Datarep_extent_function * dtype_file_extent_fn,
-                              void *extra_state, int is_large)
+                              MPIX_Compressor_function * compressor_init_fn,
+                              MPIX_Compressor_function * compressor_deflate_fn,
+                              MPIX_Compressor_function * compressor_inflate_fn, void *extra_state)
 {
     int error_code;
     ADIOI_Compressor *adio_compressor;
@@ -99,22 +96,13 @@ int MPIOI_Register_compressor(const char *compressor_name,
         }
     }
 
-    /* Check Non-NULL Read and Write conversion function pointer */
-    /* Read and Write conversions are currently not supported.   */
-    if ((read_conversion_fn != NULL) || (write_conversion_fn != NULL)) {
+    /* Check NULL function pointers */
+    if ((compressor_init_fn == NULL) ||
+        (compressor_deflate_fn == NULL) || (compressor_inflate_fn == NULL)) {
         error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
                                           myname, __LINE__,
-                                          MPI_ERR_CONVERSION, "**drconvnotsupported", 0);
+                                          MPI_ERR_CONVERSION, "**compressorinvalid", 0);
 
-        error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
-        goto fn_exit;
-    }
-
-    /* check extent function pointer */
-    if (dtype_file_extent_fn == NULL) {
-        error_code = MPIO_Err_create_code(MPI_SUCCESS,
-                                          MPIR_ERR_RECOVERABLE,
-                                          myname, __LINE__, MPI_ERR_ARG, "**datarepextent", 0);
         error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
         goto fn_exit;
     }
@@ -123,9 +111,9 @@ int MPIOI_Register_compressor(const char *compressor_name,
     adio_compressor = ADIOI_Malloc(sizeof(ADIOI_Compressor));
     adio_compressor->name = ADIOI_Strdup(compressor_name);
     adio_compressor->state = extra_state;
-    adio_compressor->read_conv_fn = (MPIX_Compressor_function *) read_conversion_fn;
-    adio_compressor->write_conv_fn = (MPIX_Compressor_function *) write_conversion_fn;
-    adio_compressor->extent_fn = dtype_file_extent_fn;
+    adio_compressor->init_fn = compressor_init_fn;
+    adio_compressor->deflate_fn = compressor_deflate_fn;
+    adio_compressor->inflate_fn = compressor_inflate_fn;
     adio_compressor->next = ADIOI_Compressor_head;
 
     ADIOI_Compressor_head = adio_compressor;
