@@ -132,7 +132,7 @@ int MPIOI_Lookup_compressor(const char *compressor_name,
                             MPIX_Compressor_function ** compressor_deflate_fn,
                             MPIX_Compressor_function ** compressor_inflate_fn, void **extra_state)
 {
-    int error_code;
+    int found = 0;
     ADIOI_Compressor *adio_compressor;
 
     for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
@@ -142,10 +142,41 @@ int MPIOI_Lookup_compressor(const char *compressor_name,
             *compressor_deflate_fn = adio_compressor->deflate_fn;
             *compressor_inflate_fn = adio_compressor->inflate_fn;
             *extra_state = adio_compressor->state;
+            found = 1;
             break;
         }
     }
 
+    return found;
+}
+
+int MPIOI_Lookup_compressor_list(char **compressor_name_list)
+{
+    int error_code = MPI_SUCCESS;
+    ADIOI_Compressor *adio_compressor;
+    int length = 0;
+
+    for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
+         adio_compressor = adio_compressor->next) {
+        length += strnlen(adio_compressor->name, MPIX_MAX_COMPRESSOR_STRING) + 1;
+    }
+
+    if (length) {
+        *compressor_name_list = ADIOI_Malloc(length);
+        (*compressor_name_list)[0] = '\0';
+    } else {
+        *compressor_name_list = NULL;
+        goto fn_exit;
+    }
+
+    for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
+         adio_compressor = adio_compressor->next) {
+        strcat(*compressor_name_list, adio_compressor->name);
+        if (adio_compressor->next) {
+            strcat(*compressor_name_list, ",");
+        }
+    }
+
   fn_exit:
-    return error_code;
+    return length;
 }

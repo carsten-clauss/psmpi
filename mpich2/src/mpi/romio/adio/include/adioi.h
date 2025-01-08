@@ -865,6 +865,8 @@ int MPIOI_Lookup_compressor(const char *compressor_name,
                             MPIX_Compressor_function ** compressor_deflate_fn,
                             MPIX_Compressor_function ** compressor_inflate_fn, void **extra_state);
 
+int MPIOI_Lookup_compressor_list(char **compressor_name_list);
+
 /* Unix-style file locking */
 
 #if defined(F_SETLKW64)
