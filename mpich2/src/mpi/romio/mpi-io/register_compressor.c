@@ -126,3 +126,26 @@ int MPIOI_Register_compressor(const char *compressor_name,
     return error_code;
 }
 #endif
+
+int MPIOI_Lookup_compressor(const char *compressor_name,
+                            MPIX_Compressor_function ** compressor_init_fn,
+                            MPIX_Compressor_function ** compressor_deflate_fn,
+                            MPIX_Compressor_function ** compressor_inflate_fn, void **extra_state)
+{
+    int error_code;
+    ADIOI_Compressor *adio_compressor;
+
+    for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
+         adio_compressor = adio_compressor->next) {
+        if (!strncmp(compressor_name, adio_compressor->name, MPIX_MAX_COMPRESSOR_STRING)) {
+            *compressor_init_fn = adio_compressor->init_fn;
+            *compressor_deflate_fn = adio_compressor->deflate_fn;
+            *compressor_inflate_fn = adio_compressor->inflate_fn;
+            *extra_state = adio_compressor->state;
+            break;
+        }
+    }
+
+  fn_exit:
+    return error_code;
+}

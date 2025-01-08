@@ -856,9 +856,14 @@ int MPIOI_Register_datarep(const char *datarep,
                            void *extra_state, int is_large);
 
 int MPIOI_Register_compressor(const char *compressor_name,
-                              MPIX_Compressor_function * conpressor_init_fn,
-                              MPIX_Compressor_function * conpressor_deflate_fn,
-                              MPIX_Compressor_function * conpressor_inflate_fn, void *extra_state);
+                              MPIX_Compressor_function * compressor_init_fn,
+                              MPIX_Compressor_function * compressor_deflate_fn,
+                              MPIX_Compressor_function * compressor_inflate_fn, void *extra_state);
+
+int MPIOI_Lookup_compressor(const char *compressor_name,
+                            MPIX_Compressor_function ** compressor_init_fn,
+                            MPIX_Compressor_function ** compressor_deflate_fn,
+                            MPIX_Compressor_function ** compressor_inflate_fn, void **extra_state);
 
 /* Unix-style file locking */
 
