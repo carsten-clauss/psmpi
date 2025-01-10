@@ -97,6 +97,7 @@ int MPIOI_Register_compressor(const char *compressor_name,
     }
 
     /* Check NULL function pointers */
+#if 0
     if ((compressor_init_fn == NULL) ||
         (compressor_deflate_fn == NULL) || (compressor_inflate_fn == NULL)) {
         error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
@@ -106,6 +107,7 @@ int MPIOI_Register_compressor(const char *compressor_name,
         error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
         goto fn_exit;
     }
+#endif
     /* --END ERROR HANDLING-- */
 
     adio_compressor = ADIOI_Malloc(sizeof(ADIOI_Compressor));

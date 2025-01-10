@@ -446,6 +446,11 @@ struct MPID_DEV_Request_partitioned {
     bool *part_ready;           /* array with length equal to number of partitions, saving the ready status of each partition */
     int first_use;              /* 1 means this is the first call to MPI_start for this request, 0 means it is a consecutive call */
     int send_ctr;               /* counting submitted send requests */
+
+    /* compressor */
+    MPIX_Compressor_function *compr_deflate_fn;
+    MPIX_Compressor_function *compr_inflate_fn;
+    void *compr_extra_state;
 };
 
 struct MPI_Status;

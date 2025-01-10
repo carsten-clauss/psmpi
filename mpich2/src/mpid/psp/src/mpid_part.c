@@ -13,6 +13,18 @@
 #include "mpid_psp_datatype.h"
 #include "mpid_psp_packed_msg.h"
 
+int MPIOI_Register_compressor(const char *compressor_name,
+                              MPIX_Compressor_function * compressor_init_fn,
+                              MPIX_Compressor_function * compressor_deflate_fn,
+                              MPIX_Compressor_function * compressor_inflate_fn, void *extra_state);
+
+int MPIOI_Lookup_compressor(const char *compressor_name,
+                            MPIX_Compressor_function ** compressor_init_fn,
+                            MPIX_Compressor_function ** compressor_deflate_fn,
+                            MPIX_Compressor_function ** compressor_inflate_fn, void **extra_state);
+
+int MPIOI_Lookup_compressor_list(char **compressor_name_list);
+
 /**
  * @brief Check if a partitioned request matches to all given parameters rank, tag and context_id.
  *
@@ -527,6 +539,39 @@ void MPID_part_distribute_partitions_to_requests(MPIR_Request * req)
     preq->part_per_req = preq->partitions / preq->requests;
 }
 
+static
+int MPIDI_PSP_part_check_info(MPIR_Info * info_ptr, MPIR_Request * req_ptr)
+{
+    struct MPID_DEV_Request_partitioned *preq = &req_ptr->dev.kind.partitioned;
+
+    if (!info_ptr)
+        return MPI_SUCCESS;
+
+    int info_flag = 0;
+    char info_value[MPI_MAX_INFO_VAL + 1];
+
+    MPIR_Info_get_impl(info_ptr, "compressor", MPI_MAX_INFO_VAL, info_value, &info_flag);
+
+    if (info_flag) {
+
+        MPIX_Compressor_function *compressor_init_fn;
+        MPIX_Compressor_function *compressor_deflate_fn;
+        MPIX_Compressor_function *compressor_inflate_fn;
+        void *extra_state;
+
+        int found = MPIOI_Lookup_compressor(info_value, &compressor_init_fn, &compressor_deflate_fn,
+                                            &compressor_inflate_fn, &extra_state);
+
+        if (found && (compressor_init_fn != MPIX_COMPRESSOR_FN_NULL)) {
+            MPI_Aint extent;
+            compressor_init_fn(preq->buf, preq->partitions, preq->count, preq->datatype, preq->info,
+                               &extent, extra_state);
+        }
+    }
+
+    return MPI_SUCCESS;
+}
+
 /**
  * @brief Common initialization for partitioned communication requests
  *
@@ -588,6 +633,8 @@ int MPID_PSP_part_init_common(const void *buf, int partitions, MPI_Count count,
     preq->part_ready = NULL;
     preq->first_use = 1;
     req->dev.kind.partitioned.send_ctr = 0;
+
+    MPIDI_PSP_part_check_info(info, *request);
 
     /* compute and save initial settings for partitioned communication */
     MPID_part_distribute_partitions_to_requests(req);
