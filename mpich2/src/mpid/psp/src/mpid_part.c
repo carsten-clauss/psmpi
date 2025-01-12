@@ -8,6 +8,7 @@
  * file.
  */
 
+#include <dlfcn.h>
 #include "mpidimpl.h"
 #include "mpid_psp_request.h"
 #include "mpid_psp_datatype.h"
@@ -595,9 +596,9 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
         return MPI_SUCCESS;
 
     int info_flag = 0;
-    char info_value[MPI_MAX_INFO_VAL + 1];
+    char info_compressor_name[MPI_MAX_INFO_VAL + 1];
 
-    MPIR_Info_get_impl(info, "compressor", MPI_MAX_INFO_VAL, info_value, &info_flag);
+    MPIR_Info_get_impl(info, "compressor", MPI_MAX_INFO_VAL, info_compressor_name, &info_flag);
 
     if (info_flag) {
 
@@ -606,12 +607,44 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
         MPIX_Compressor_function *compressor_inflate_fn;
         void *extra_state;
         MPI_Aint extent = 0;
+        int found = 0;
+        int retry = 1;
 
-        int found = MPIOI_Lookup_compressor(info_value, &compressor_init_fn, &compressor_deflate_fn,
-                                            &compressor_inflate_fn, &extra_state);
+      lookup_retry:
 
-        if (!found)
+        found =
+            MPIOI_Lookup_compressor(info_compressor_name, &compressor_init_fn,
+                                    &compressor_deflate_fn, &compressor_inflate_fn, &extra_state);
+
+        if (!found) {
+
+            char info_compressor_plugin[MPI_MAX_INFO_VAL + 1];
+
+            if (!retry)
+                goto fn_exit;
+
+            MPIR_Info_get_impl(info, "compressor_plugin", MPI_MAX_INFO_VAL, info_compressor_plugin,
+                               &info_flag);
+
+            if (info_flag) {
+                void *(*compressor_register_fn) (const char *, MPI_Info);
+                char *dlerror_str;
+                void *handle = dlopen(info_compressor_plugin, RTLD_LAZY);
+                if (!handle)
+                    goto fn_exit;
+
+                dlerror();
+                compressor_register_fn = dlsym(handle, "compressor_register");
+                if ((dlerror_str = dlerror()) != NULL)
+                    goto fn_exit;
+
+                compressor_register_fn(info_compressor_name, info->handle);
+
+                goto lookup_retry;
+            }
+
             goto fn_exit;
+        }
 
         if (compressor_init_fn != MPIX_COMPRESSOR_FN_NULL) {
             compressor_init_fn(preq->buf, preq->partitions, preq->count, preq->datatype,
