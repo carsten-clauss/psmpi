@@ -138,6 +138,9 @@ int MPID_part_issue_data_recv(MPIR_Request * req)
         MPI_Aint base;
         MPI_Aint dtype_size = 0;
         MPI_Aint part_buf;
+        MPI_Aint count;
+        MPI_Datatype dtype;
+        void *buffer;
 
         /* last request could be smaller, take the rest */
         if (i == preq->requests - 1) {
@@ -152,11 +155,35 @@ int MPID_part_issue_data_recv(MPIR_Request * req)
         int msg_tag = preq->tag + i + 1;
         MPIR_Assert(msg_tag <= INT_MAX);
 
-        mpi_errno = MPID_Irecv((void *) part_buf,
-                               elements,
-                               preq->datatype,
+        count = elements;
+        dtype = preq->datatype;
+        buffer = (void *) part_buf;
+
+        if (preq->compr_buffer) {
+
+            MPI_Aint extent_inflated;
+            MPI_Get_address(preq->compr_buffer, &base);
+            MPI_Aint part_buf_compr = MPI_Aint_add(base, i * preq->compr_extent);
+
+            extent_inflated = dtype_size * count;
+
+            count = extent_inflated;
+            dtype = MPI_BYTE;
+            buffer = (void *) part_buf_compr;
+        }
+
+        mpi_errno = MPID_Irecv(buffer,
+                               count,
+                               dtype,
                                preq->rank, msg_tag, req->comm, preq->context_offset, &new_req);
         MPIR_ERR_CHECK(mpi_errno);
+
+        if (preq->compr_buffer) {
+
+            MPI_Aint extent_deflated;
+            preq->compr_inflate_fn((void *) part_buf, i, elements, dtype, MPI_INFO_NULL, buffer,
+                                   &extent_deflated, preq->compr_extra_state);
+        }
 
         /*
          * Set the completion notification of the new subrequest to the completion counter of
@@ -196,6 +223,9 @@ int MPID_part_issue_data_send(MPIR_Request * req, int req_idx)
     MPI_Aint base;
     MPI_Aint dtype_size = 0;
     MPI_Aint part_buf;
+    MPI_Aint count;
+    MPI_Datatype dtype;
+    void *buffer;
     int mpi_errno = MPI_SUCCESS;
 
     MPIR_ERR_CHKANDJUMP(req->kind != MPIR_REQUEST_KIND__PART_SEND, mpi_errno, MPI_ERR_ARG, "**arg");
@@ -218,10 +248,27 @@ int MPID_part_issue_data_send(MPIR_Request * req, int req_idx)
     int msg_tag = preq->tag + req_idx + 1;
     MPIR_Assert(msg_tag <= INT_MAX);
 
-    mpi_errno = MPID_Isend((void *) part_buf,
-                           elements,
-                           preq->datatype,
-                           preq->rank, msg_tag, req->comm, preq->context_offset, &new_req);
+    count = elements;
+    dtype = preq->datatype;
+    buffer = (void *) part_buf;
+
+    if (preq->compr_buffer) {
+
+        MPI_Aint extent_deflated;
+        MPI_Get_address(preq->compr_buffer, &base);
+        MPI_Aint part_buf_compr = MPI_Aint_add(base, req_idx * preq->compr_extent);
+
+        preq->compr_deflate_fn((void *) part_buf, req_idx, elements, dtype, MPI_INFO_NULL,
+                               (void *) part_buf_compr, &extent_deflated, preq->compr_extra_state);
+
+        count = extent_deflated;
+        dtype = MPI_BYTE;
+        buffer = (void *) part_buf_compr;
+    }
+
+    mpi_errno = MPID_Isend(buffer,
+                           count,
+                           dtype, preq->rank, msg_tag, req->comm, preq->context_offset, &new_req);
     MPIR_ERR_CHECK(mpi_errno);
 
     preq->send_ctr++;
@@ -540,17 +587,17 @@ void MPID_part_distribute_partitions_to_requests(MPIR_Request * req)
 }
 
 static
-int MPIDI_PSP_part_check_info(MPIR_Info * info_ptr, MPIR_Request * req_ptr)
+int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
 {
-    struct MPID_DEV_Request_partitioned *preq = &req_ptr->dev.kind.partitioned;
+    struct MPID_DEV_Request_partitioned *preq = &req->dev.kind.partitioned;
 
-    if (!info_ptr)
+    if (!info)
         return MPI_SUCCESS;
 
     int info_flag = 0;
     char info_value[MPI_MAX_INFO_VAL + 1];
 
-    MPIR_Info_get_impl(info_ptr, "compressor", MPI_MAX_INFO_VAL, info_value, &info_flag);
+    MPIR_Info_get_impl(info, "compressor", MPI_MAX_INFO_VAL, info_value, &info_flag);
 
     if (info_flag) {
 
@@ -558,17 +605,31 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info_ptr, MPIR_Request * req_ptr)
         MPIX_Compressor_function *compressor_deflate_fn;
         MPIX_Compressor_function *compressor_inflate_fn;
         void *extra_state;
+        MPI_Aint extent = 0;
 
         int found = MPIOI_Lookup_compressor(info_value, &compressor_init_fn, &compressor_deflate_fn,
                                             &compressor_inflate_fn, &extra_state);
 
-        if (found && (compressor_init_fn != MPIX_COMPRESSOR_FN_NULL)) {
-            MPI_Aint extent;
-            compressor_init_fn(preq->buf, preq->partitions, preq->count, preq->datatype, preq->info,
-                               &extent, extra_state);
+        if (!found)
+            goto fn_exit;
+
+        if (compressor_init_fn != MPIX_COMPRESSOR_FN_NULL) {
+            compressor_init_fn(preq->buf, preq->partitions, preq->count, preq->datatype,
+                               preq->info->handle, NULL, &extent, extra_state);
+        }
+
+        preq->compr_deflate_fn = compressor_deflate_fn;
+        preq->compr_inflate_fn = compressor_inflate_fn;
+        preq->compr_extra_state = extra_state;
+        preq->compr_extent = extent;
+        preq->compr_buffer = NULL;
+
+        if (extent) {
+            preq->compr_buffer = MPL_malloc(extent * preq->partitions, MPL_MEM_BUFFER);
         }
     }
 
+  fn_exit:
     return MPI_SUCCESS;
 }
 
@@ -634,7 +695,7 @@ int MPID_PSP_part_init_common(const void *buf, int partitions, MPI_Count count,
     preq->first_use = 1;
     req->dev.kind.partitioned.send_ctr = 0;
 
-    MPIDI_PSP_part_check_info(info, *request);
+    MPIDI_PSP_part_check_info(info, req);
 
     /* compute and save initial settings for partitioned communication */
     MPID_part_distribute_partitions_to_requests(req);

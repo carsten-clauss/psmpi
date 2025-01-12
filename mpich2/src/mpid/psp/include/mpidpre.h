@@ -451,6 +451,8 @@ struct MPID_DEV_Request_partitioned {
     MPIX_Compressor_function *compr_deflate_fn;
     MPIX_Compressor_function *compr_inflate_fn;
     void *compr_extra_state;
+    MPI_Aint compr_extent;
+    void *compr_buffer;
 };
 
 struct MPI_Status;
