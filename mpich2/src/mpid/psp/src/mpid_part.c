@@ -169,7 +169,7 @@ int MPID_part_issue_data_recv(MPIR_Request * req)
 
             count = extent_inflated;
             dtype = MPI_BYTE;
-            buffer = (void *) part_buf_compr;
+//          buffer = (void*) part_buf_compr;
         }
 
         mpi_errno = MPID_Irecv(buffer,
@@ -178,7 +178,7 @@ int MPID_part_issue_data_recv(MPIR_Request * req)
                                preq->rank, msg_tag, req->comm, preq->context_offset, &new_req);
         MPIR_ERR_CHECK(mpi_errno);
 
-        if (preq->compr_buffer) {
+        if (0 && preq->compr_buffer) {
 
             MPI_Aint extent_deflated;
             preq->compr_inflate_fn((void *) part_buf, i, elements, dtype, MPI_INFO_NULL, buffer,
@@ -622,7 +622,6 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
         preq->compr_inflate_fn = compressor_inflate_fn;
         preq->compr_extra_state = extra_state;
         preq->compr_extent = extent;
-        preq->compr_buffer = NULL;
 
         if (extent) {
             preq->compr_buffer = MPL_malloc(extent * preq->partitions, MPL_MEM_BUFFER);
@@ -694,6 +693,8 @@ int MPID_PSP_part_init_common(const void *buf, int partitions, MPI_Count count,
     preq->part_ready = NULL;
     preq->first_use = 1;
     req->dev.kind.partitioned.send_ctr = 0;
+
+    preq->compr_buffer = NULL;
 
     MPIDI_PSP_part_check_info(info, req);
 
