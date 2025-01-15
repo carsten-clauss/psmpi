@@ -7,6 +7,7 @@
 #define ADIO_EXTERN_H_INCLUDED
 
 extern ADIOI_Datarep *ADIOI_Datarep_head;
+extern ADIOI_Compressor *ADIOI_Compressor_head;
 
 /* for f2c and c2f conversion */
 extern ADIO_File *ADIOI_Ftable;

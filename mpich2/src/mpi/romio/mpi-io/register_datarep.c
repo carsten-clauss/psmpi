@@ -210,3 +210,5 @@ int MPIOI_Register_datarep(const char *datarep,
     return error_code;
 }
 #endif
+
+#include "register_compressor.c"

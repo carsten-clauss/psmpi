@@ -112,6 +112,17 @@ typedef struct ADIOI_Datarep {
     struct ADIOI_Datarep *next; /* pointer to next datarep */
 } ADIOI_Datarep;
 
+typedef struct ADIOI_Compressor {
+    char *name;
+    MPIX_Compressor_req_init_function *req_init_fn;
+    MPIX_Compressor_req_free_function *req_free_fn;
+    MPIX_Compressor_conversion_function *deflate_fn;
+    MPIX_Compressor_conversion_function *inflate_fn;
+    MPIX_Compressor_deregister_function *deregister_fn;
+    void *extra_state;
+    struct ADIOI_Compressor *next;      /* pointer to next datarep */
+} ADIOI_Compressor;
+
 /* Values for use with cb_read, cb_write, ds_read, and ds_write
  * and some fs-specific hints
    (IBM xlc, Compaq Tru64 compilers object to a comma after the last item)
@@ -845,6 +856,22 @@ int MPIOI_Register_datarep(const char *datarep,
                            MPIOI_VOID_FN * write_conversion_fn,
                            MPI_Datarep_extent_function * dtype_file_extent_fn,
                            void *extra_state, int is_large);
+
+int MPIOI_Register_compressor(const char *compressor_name,
+                              MPIX_Compressor_req_init_function * compressor_req_init_fn,
+                              MPIX_Compressor_req_free_function * compressor_req_free_fn,
+                              MPIX_Compressor_conversion_function * compressor_deflate_fn,
+                              MPIX_Compressor_conversion_function * compressor_inflate_fn,
+                              MPIX_Compressor_deregister_function * compressor_deregister_fn,
+                              MPI_Info info, void *extra_state);
+
+int MPIOI_Lookup_compressor(const char *compressor_name,
+                            MPIX_Compressor_req_init_function ** compressor_req_init_fn,
+                            MPIX_Compressor_req_free_function ** compressor_req_free_fn,
+                            MPIX_Compressor_conversion_function ** compressor_deflate_fn,
+                            MPIX_Compressor_conversion_function ** compressor_inflate_fn,
+                            MPIX_Compressor_deregister_function ** compressor_deregister_fn,
+                            void **extra_state);
 
 /* Unix-style file locking */
 

@@ -1767,6 +1767,15 @@ MPI_Register_datarep:
     write_conversion_fn: POLYFUNCTION, func_type=MPI_Datarep_conversion_function, [function invoked to convert from native representation to file representation]
     dtype_file_extent_fn: FUNCTION, func_type=MPI_Datarep_extent_function, [function invoked to get the extent of a datatype as represented in the file]
     extra_state: EXTRA_STATE, [extra state]
+MPIX_Register_compressor:
+    compressor_name: STRING, constant=True, [payload compressor identifier]
+    compressor_req_init_fn: POLYFUNCTION, func_type=MPIX_Compressor_req_init_function, [function invoked to initialize a payload compressor for a partitioned request]
+    compressor_req_free_fn: POLYFUNCTION, func_type=MPIX_Compressor_req_free_function, [function invoked to release resources allocated by the compressor for a request]
+    compressor_deflate_fn:  POLYFUNCTION, func_type=MPIX_Compressor_conversion_function, [function invoked to deflate a payload buffer before sending]
+    compressor_inflate_fn:  POLYFUNCTION, func_type=MPIX_Compressor_conversion_function, [function invoked to inflate a payload buffer again after receiving]
+    compressor_deregister_fn: POLYFUNCTION, func_type=MPIX_Compressor_deregister_function, [function invoked when all resources are to be released at the end]
+    info: INFO, [info argument]
+    extra_state: EXTRA_STATE, [extra state]
 MPI_Request_c2f:
     .return: F90_REQUEST
     request: REQUEST, direction=in, pointer=False

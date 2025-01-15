@@ -34,6 +34,19 @@ void ADIO_End(int *error_code)
         datarep = datarep_next;
     }
 
+/* free the memory allocated for a compressor, if any */
+    ADIOI_Compressor *compressor_ptr, *compressor_next;
+    compressor_ptr = ADIOI_Compressor_head;
+    while (compressor_ptr) {
+        compressor_next = compressor_ptr->next;
+        if (compressor_ptr->deregister_fn) {
+            compressor_ptr->deregister_fn(compressor_ptr->extra_state);
+        }
+        ADIOI_Free(compressor_ptr->name);
+        ADIOI_Free(compressor_ptr);
+        compressor_ptr = compressor_next;
+    }
+
     if (ADIOI_syshints != MPI_INFO_NULL)
         MPI_Info_free(&ADIOI_syshints);
 
