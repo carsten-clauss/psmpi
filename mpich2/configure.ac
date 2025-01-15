@@ -2097,7 +2097,8 @@ if test "$enable_f90" = "yes" ; then
 fi
 
 if test "$enable_f08" = "yes" ; then
-    PAC_FC_2008_SUPPORT([:],[enable_f08=no])
+#   PAC_FC_2008_SUPPORT([:],[enable_f08=no])
+    enable_f08=no
 fi
 AM_CONDITIONAL([BUILD_F08_BINDING], [test "$enable_f08" = "yes"])
 
