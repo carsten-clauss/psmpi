@@ -12,4 +12,5 @@ include $(top_srcdir)/Makefile_single.mtest
 EXTRA_DIST = testlist
 
 noinst_PROGRAMS = \
-    mpix_compressor_nop
+    mpix_compressor_nop \
+    mpix_compressor_d2i
