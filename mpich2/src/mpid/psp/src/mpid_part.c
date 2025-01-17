@@ -8,6 +8,7 @@
  * file.
  */
 
+#include <dlfcn.h>
 #include "mpidimpl.h"
 #include "mpid_psp_request.h"
 #include "mpid_psp_datatype.h"
@@ -677,6 +678,44 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
                                                    &compressor_req_free_fn,
                                                    &compressor_deflate_fn,
                                                    &compressor_inflate_fn, NULL, &extra_state);
+
+        if (!compressor_found && compressor_retry && MPIDI_Process.env.enable_compressor_plugins) {
+
+            compressor_retry = 0;
+
+            char info_compressor_plugin[MPI_MAX_INFO_VAL + 1];
+            MPIR_Info_get_impl(info, compressor_info_key_plugin, MPI_MAX_INFO_VAL,
+                               info_compressor_plugin, &info_flag);
+
+            if (info_flag) {
+
+                void *dlhandle;
+                char *dlerror_str;
+                MPIX_Compressor_register_plugin_function *compressor_register_fn;
+
+                dlerror();
+                dlhandle = dlopen(info_compressor_plugin, RTLD_LAZY);
+                dlerror_str = dlerror();
+                if (!dlhandle || dlerror_str)
+                    goto compressor_end;
+
+                dlerror();
+                compressor_register_fn = dlsym(dlhandle, compressor_register_plugin_fn);
+                dlerror_str = dlerror();
+                if (dlerror_str)
+                    goto compressor_end;
+
+                retval = compressor_register_fn(info_compressor_name, info->handle);
+
+                if (retval != MPI_SUCCESS)
+                    goto compressor_end;
+
+                /* ...and retry... */
+                goto compressor_begin;
+            }
+
+            goto compressor_end;
+        }
 
         if (compressor_found) {
 

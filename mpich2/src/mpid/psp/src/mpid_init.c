@@ -67,6 +67,7 @@ MPIDI_Process_t MPIDI_Process = {
                 dinit(enable_hcoll_stats) 0,
 #endif
                 dinit(enable_lazy_disconnect) 1,
+                dinit(enable_compressor_plugins) 0,
                 dinit(rma) {
                             dinit(enable_rma_accumulate_ordering) - 1,
                             dinit(enable_explicit_wait_on_passive_side) - 1,
@@ -173,6 +174,8 @@ void mpid_env_init(void)
 #endif
 
     pscom_env_get_uint(&MPIDI_Process.env.enable_lazy_disconnect, "PSP_LAZY_DISCONNECT");
+
+    pscom_env_get_uint(&MPIDI_Process.env.enable_compressor_plugins, "PSP_COMPRESSOR_PLUGINS");
 
     pscom_env_get_int(&MPIDI_Process.env.rma.enable_rma_accumulate_ordering,
                       "PSP_ACCUMULATE_ORDERING");
