@@ -376,6 +376,8 @@ be in the range 0 to %d
 **compressorused:The given compressor name has already been registered
 **compressorused %s:The given compressor name %s has already been registered
 **compressorinvalid:The given compressor cannot be used as it is invalid
+**compressorfailed: The compressor failed during data conversion.
+**compressorfailed %s: The compressor %s failed during data conversion.
 **fileinuse:File in use by some process
 **file:Invalid MPI_File
 **info:Invalid MPI_Info

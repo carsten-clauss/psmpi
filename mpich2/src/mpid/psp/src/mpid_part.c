@@ -13,6 +13,31 @@
 #include "mpid_psp_datatype.h"
 #include "mpid_psp_packed_msg.h"
 
+/* info keys used for compressor handling */
+const char compressor_info_key[] = "compressor";
+const char compressor_info_key_plugin[] = "compressor_plugin";
+
+/* symbol name for plugin functione called to register a compressor */
+const char compressor_register_plugin_fn[] = "compressor_register";
+
+/* additional macro needed by MPIDI_PSP_part_check_info() (should go to MPIR...) */
+#define MPIDI_PSP_Datatype_is_builtin(dtype_, flag_) do {	\
+    if (HANDLE_GET_KIND(dtype_) == HANDLE_KIND_BUILTIN) {	\
+	*flag_ = 1;						\
+    } else {							\
+	*flag_ = 0;						\
+    }								\
+} while (0)
+
+/* prototype from psmpi/mpich2/src/mpi/romio/adio/include/adioi.h */
+int MPIOI_Lookup_compressor(const char *compressor_name,
+                            MPIX_Compressor_req_init_function ** compressor_req_init_fn,
+                            MPIX_Compressor_req_free_function ** compressor_req_free_fn,
+                            MPIX_Compressor_conversion_function ** compressor_deflate_fn,
+                            MPIX_Compressor_conversion_function ** compressor_inflate_fn,
+                            MPIX_Compressor_deregister_function ** compressor_deregister_fn,
+                            void **extra_state);
+
 /**
  * @brief Check if a partitioned request matches to all given parameters rank, tag and context_id.
  *
@@ -126,6 +151,9 @@ int MPID_part_issue_data_recv(MPIR_Request * req)
         MPI_Aint base;
         MPI_Aint dtype_size = 0;
         MPI_Aint part_buf;
+        MPI_Aint count;
+        MPI_Datatype dtype;
+        void *buffer;
 
         /* last request could be smaller, take the rest */
         if (i == preq->requests - 1) {
@@ -140,11 +168,40 @@ int MPID_part_issue_data_recv(MPIR_Request * req)
         int msg_tag = preq->tag + i + 1;
         MPIR_Assert(msg_tag <= INT_MAX);
 
-        mpi_errno = MPID_Irecv((void *) part_buf,
-                               elements,
-                               preq->datatype,
-                               preq->rank, msg_tag, req->comm, preq->context_offset, &new_req);
+        count = elements;
+        dtype = preq->datatype;
+        buffer = (void *) part_buf;
+
+        if (preq->compressor.inflate_fn) {
+
+            MPI_Get_address(preq->compressor.compr_buffer, &base);
+            MPI_Aint part_buf_compr = MPI_Aint_add(base, i * preq->compressor.compr_part_size);
+
+            count = preq->compressor.compr_part_size;
+            dtype = MPIX_COMPRESSED;
+            buffer = (void *) part_buf_compr;
+        }
+
+        mpi_errno =
+            MPID_Irecv(buffer, count, dtype, preq->rank, msg_tag, req->comm, preq->context_offset,
+                       &new_req);
         MPIR_ERR_CHECK(mpi_errno);
+
+        /* !!! The assumption is that here the request has been posted but not been started yet !!! */
+        struct MPID_DEV_Request_recv *rreq = &new_req->dev.kind.recv;
+        memset(&rreq->compressor, 0, sizeof(struct MPID_DEV_Request_compressor_recv));
+
+        if (preq->compressor.inflate_fn) {
+
+            rreq->compressor.name = preq->compressor.name;
+            rreq->compressor.partition = i;
+            rreq->compressor.count = elements;
+            rreq->compressor.datatype = preq->datatype;
+            rreq->compressor.user_buf_ptr = (void *) part_buf;
+            rreq->compressor.compr_buf_ptr = buffer;
+            rreq->compressor.inflate_fn = preq->compressor.inflate_fn;
+            rreq->compressor.extra_req_state = preq->compressor.extra_req_state;
+        }
 
         /*
          * Set the completion notification of the new subrequest to the completion counter of
@@ -184,6 +241,9 @@ int MPID_part_issue_data_send(MPIR_Request * req, int req_idx)
     MPI_Aint base;
     MPI_Aint dtype_size = 0;
     MPI_Aint part_buf;
+    MPI_Aint count;
+    MPI_Datatype dtype;
+    void *buffer;
     int mpi_errno = MPI_SUCCESS;
 
     MPIR_ERR_CHKANDJUMP(req->kind != MPIR_REQUEST_KIND__PART_SEND, mpi_errno, MPI_ERR_ARG, "**arg");
@@ -206,10 +266,44 @@ int MPID_part_issue_data_send(MPIR_Request * req, int req_idx)
     int msg_tag = preq->tag + req_idx + 1;
     MPIR_Assert(msg_tag <= INT_MAX);
 
-    mpi_errno = MPID_Isend((void *) part_buf,
-                           elements,
-                           preq->datatype,
-                           preq->rank, msg_tag, req->comm, preq->context_offset, &new_req);
+    count = elements;
+    dtype = preq->datatype;
+    buffer = (void *) part_buf;
+
+    if (preq->compressor.deflate_fn) {
+
+        MPIR_Assert(preq->compressor.compr_buffer);
+        MPI_Get_address(preq->compressor.compr_buffer, &base);
+        MPI_Aint compr_part_addr = MPI_Aint_add(base, req_idx * preq->compressor.compr_part_size);
+
+        /* INPUT is the size of the partition on user side */
+        MPI_Aint size = dtype_size * count;
+
+        int retval = preq->compressor.deflate_fn((void *) part_buf, req_idx, elements, dtype,
+                                                 (void *) compr_part_addr, &size,
+                                                 preq->compressor.extra_req_state);
+
+        if (retval != MPI_SUCCESS) {
+            mpi_errno = MPIR_Err_create_code(MPI_SUCCESS,
+                                             MPIR_ERR_FATAL,
+                                             __func__, __LINE__,
+                                             MPIX_ERR_FAILED_COMPRESSOR,
+                                             "**compressorfailed", "**compressorfailed %s",
+                                             preq->compressor.name);
+            goto fn_fail;
+        }
+
+        /* OUTPUT is the size of the compressed buffer to send */
+        MPIR_Assert(size <= preq->compressor.compr_part_size);
+
+        count = size;
+        dtype = MPIX_COMPRESSED;
+        buffer = (void *) compr_part_addr;
+    }
+
+    mpi_errno =
+        MPID_Isend(buffer, count, dtype, preq->rank, msg_tag, req->comm, preq->context_offset,
+                   &new_req);
     MPIR_ERR_CHECK(mpi_errno);
 
     preq->send_ctr++;
@@ -528,6 +622,121 @@ void MPID_part_distribute_partitions_to_requests(MPIR_Request * req)
 }
 
 /**
+ * @brief Checks whether the given info object contains any relevant information.
+ *        (Currently, this can only be the case with regard to a payload compressor.)
+ *
+ * @param info pointer to info object
+ * @param req pointer to a partitioned request
+ *
+ * @return int MPI_SUCCESS
+ */
+static
+int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
+{
+    int retval = MPI_SUCCESS;
+
+    struct MPID_DEV_Request_partitioned *preq = &req->dev.kind.partitioned;
+    memset(&preq->compressor, 0, sizeof(struct MPID_DEV_Request_compressor_part));
+
+    if (!info)
+        return MPI_SUCCESS;
+
+    /***************************************************************************/
+    /* Check if use of payload compressor is requested */
+
+    int dtype_is_contig = 0;
+    int dtype_is_builtin = 0;
+    int info_flag = 0;
+    char info_compressor_name[MPI_MAX_INFO_VAL + 1];
+    MPI_Aint dtype_size;
+
+    MPIR_Datatype_get_size_macro(preq->datatype, dtype_size);
+    MPIR_Datatype_is_contig(preq->datatype, &dtype_is_contig);
+    MPIDI_PSP_Datatype_is_builtin(preq->datatype, &dtype_is_builtin);
+
+    if (dtype_is_contig && dtype_is_builtin) {
+        MPIR_Info_get_impl(info, compressor_info_key, MPI_MAX_INFO_VAL, info_compressor_name,
+                           &info_flag);
+    }
+
+    if (info_flag) {
+
+        MPIX_Compressor_req_init_function *compressor_req_init_fn;
+        MPIX_Compressor_req_free_function *compressor_req_free_fn;
+        MPIX_Compressor_conversion_function *compressor_deflate_fn;
+        MPIX_Compressor_conversion_function *compressor_inflate_fn;
+        void *extra_state;
+
+        int compressor_found = 0;
+        int compressor_retry = 1;
+
+      compressor_begin:
+
+        compressor_found = MPIOI_Lookup_compressor(info_compressor_name,
+                                                   &compressor_req_init_fn,
+                                                   &compressor_req_free_fn,
+                                                   &compressor_deflate_fn,
+                                                   &compressor_inflate_fn, NULL, &extra_state);
+
+        if (compressor_found) {
+
+            if (preq->part_per_req != 1) {
+                /* For this prototype implementation, we only support
+                 * an equal number of requests and partitions. */
+                goto compressor_end;
+            }
+
+            MPI_Aint size = 0;
+
+            if (compressor_req_init_fn != MPIX_COMPRESSOR_REQ_INIT_FN_NULL) {
+
+                void *extra_req_state = &preq->compressor.extra_req_state;
+
+                /* INPUT is the size of the partition on user side */
+                size = preq->count * dtype_size;
+
+                retval =
+                    compressor_req_init_fn(preq->buf, preq->partitions, preq->count, preq->datatype,
+                                           info->handle, &size, extra_state, extra_req_state);
+
+                /* OUTPUT is the size of the largest compressed partition */
+
+                if (retval != MPI_SUCCESS) {
+                    /* No error code generation: A failing req_init_fn is not to be treated as
+                     * an MPI error. This just deactivates the compressor use for this request. */
+                    goto compressor_end;
+                }
+            }
+
+            if (!size) {
+
+                /* Either no req_init_fn given or req_init_fn returned size = 0. In both cases,
+                 * we allocate an auxiliary buffer that is as large as the user buffer, since the
+                 * assumption is that compression only makes things  smaller, but not larger. */
+                size = dtype_size * preq->count;
+            }
+
+            preq->compressor.compr_buffer = MPL_malloc(size * preq->partitions, MPL_MEM_BUFFER);
+            preq->compressor.compr_part_size = size;
+
+            preq->compressor.name = info_compressor_name;
+            preq->compressor.req_init_fn = compressor_req_init_fn;
+            preq->compressor.req_free_fn = compressor_req_free_fn;
+            preq->compressor.deflate_fn = compressor_deflate_fn;
+            preq->compressor.inflate_fn = compressor_inflate_fn;
+            preq->compressor.extra_state = extra_state;
+        }
+    }
+
+  compressor_end:
+
+    /* End of compressor handling. */
+    /***************************************************************************/
+
+    return MPI_SUCCESS;
+}
+
+/**
  * @brief Common initialization for partitioned communication requests
  *
  * @note Thread safety: This function has to be used from within a lock.
@@ -591,6 +800,8 @@ int MPID_PSP_part_init_common(const void *buf, int partitions, MPI_Count count,
 
     /* compute and save initial settings for partitioned communication */
     MPID_part_distribute_partitions_to_requests(req);
+
+    MPIDI_PSP_part_check_info(info, req);
 
     *request = req;
 

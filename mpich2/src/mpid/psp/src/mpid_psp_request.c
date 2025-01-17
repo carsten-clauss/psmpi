@@ -61,6 +61,13 @@ static inline void MPIDI_PSP_Request_partitioned_destroy_hook(MPIR_Request * req
     if (preq->datatype) {
         MPID_PSP_Datatype_release(preq->datatype);
     }
+
+    if (preq->compressor.req_free_fn) {
+        preq->compressor.req_free_fn(preq->compressor.extra_req_state);
+    }
+    if (preq->compressor.compr_buffer) {
+        MPL_free(preq->compressor.compr_buffer);
+    }
 }
 
 

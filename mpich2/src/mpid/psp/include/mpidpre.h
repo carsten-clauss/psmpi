@@ -359,6 +359,29 @@ enum MPID_PSP_Win_epoch_states {
  * MPID_PSP Requests
  */
 
+struct MPID_DEV_Request_compressor_recv {
+    char *name;
+    int partition;
+    MPI_Count count;
+    MPI_Datatype datatype;
+    void *user_buf_ptr;
+    void *compr_buf_ptr;
+    MPIX_Compressor_conversion_function *inflate_fn;
+    void *extra_req_state;
+};
+
+struct MPID_DEV_Request_compressor_part {
+    char *name;
+    MPIX_Compressor_req_init_function *req_init_fn;
+    MPIX_Compressor_req_free_function *req_free_fn;
+    MPIX_Compressor_conversion_function *deflate_fn;
+    MPIX_Compressor_conversion_function *inflate_fn;
+    void *compr_buffer;
+    MPI_Aint compr_part_size;
+    void *extra_req_state;
+    void *extra_state;
+};
+
 struct MPID_DEV_Request_common {
     pscom_request_t *pscom_req;
     MPIR_cc_t *completion_notification;
@@ -376,6 +399,8 @@ struct MPID_DEV_Request_recv {
     char *addr;
     int count;
     MPI_Datatype datatype;
+
+    struct MPID_DEV_Request_compressor_recv compressor;
 };
 
 struct MPID_DEV_Request_mprobe {
@@ -446,6 +471,8 @@ struct MPID_DEV_Request_partitioned {
     bool *part_ready;           /* array with length equal to number of partitions, saving the ready status of each partition */
     int first_use;              /* 1 means this is the first call to MPI_start for this request, 0 means it is a consecutive call */
     int send_ctr;               /* counting submitted send requests */
+
+    struct MPID_DEV_Request_compressor_part compressor;
 };
 
 struct MPI_Status;

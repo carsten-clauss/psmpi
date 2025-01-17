@@ -126,6 +126,48 @@ void receive_done_noncontig(pscom_request_t * request)
 
 
 static
+void receive_done_compressed(pscom_request_t * request)
+{
+    MPIR_Request *req = request->user->type.sr.mpid_req;
+    struct MPID_DEV_Request_recv *rreq = &req->dev.kind.recv;
+
+    if (pscom_req_successful(request)) {
+
+        MPI_Aint dtype_size = 0;
+        int partition = rreq->compressor.partition;
+        MPI_Count count = rreq->compressor.count;
+        MPI_Datatype datatype = rreq->compressor.datatype;
+        void *user_buf_ptr = rreq->compressor.user_buf_ptr;
+        void *compr_buf_ptr = rreq->compressor.compr_buf_ptr;
+        void *extra_req_state = rreq->compressor.extra_req_state;
+
+        /* INPUT is the size of the compressed buffer received */
+        MPI_Aint size = request->header.data_len;
+
+        int retval =
+            rreq->compressor.inflate_fn(user_buf_ptr, partition, count, datatype, compr_buf_ptr,
+                                        &size, extra_req_state);
+
+        if (retval != MPI_SUCCESS) {
+            req->status.MPI_ERROR = MPIR_Err_create_code(MPI_SUCCESS,
+                                                         MPIR_ERR_FATAL,
+                                                         __func__, __LINE__,
+                                                         MPIX_ERR_FAILED_COMPRESSOR,
+                                                         "**compressorfailed",
+                                                         "**compressorfailed %s",
+                                                         rreq->compressor.name);
+        }
+
+        /* OUTPUT is the size of the partition on user side */
+        MPIR_Datatype_get_size_macro(datatype, dtype_size);
+        MPIR_Assert(size == dtype_size * count);
+    }
+
+    receive_done(request);
+}
+
+
+static
 int cb_accept_cancel_data(pscom_request_t * request,
                           pscom_connection_t * connection, pscom_header_net_t * header_net)
 {
@@ -326,6 +368,10 @@ void prepare_cleanup(MPIR_Request * req, void *buf, MPI_Aint count, MPI_Datatype
         MPID_PSP_Datatype_add_ref(datatype);
 
         preq->ops.io_done = receive_done_noncontig;
+    }
+
+    if (datatype == MPIX_COMPRESSED) {
+        preq->ops.io_done = receive_done_compressed;
     }
 }
 
