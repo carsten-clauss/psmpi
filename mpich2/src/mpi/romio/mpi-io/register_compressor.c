@@ -176,3 +176,43 @@ int MPIOI_Lookup_compressor(const char *compressor_name,
 
     return found;
 }
+
+int MPIOI_Lookup_compressor_list(char **compressor_name_list)
+{
+    static char *recent_name_list = NULL;
+    int length = 0;
+
+    if (recent_name_list) {
+        ADIOI_Free(recent_name_list);
+    }
+
+    if (!compressor_name_list) {
+        /* This path serves for freeing recent_name_list at the end. */
+        goto fn_exit;
+    }
+
+    ADIOI_Compressor *adio_compressor;
+    for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
+         adio_compressor = adio_compressor->next) {
+        length += strnlen(adio_compressor->name, MPIX_MAX_COMPRESSOR_STRING) + 1;
+    }
+    if (length) {
+        *compressor_name_list = ADIOI_Malloc(length);
+        (*compressor_name_list)[0] = '\0';
+    } else {
+        *compressor_name_list = NULL;
+        goto fn_exit;
+    }
+    for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
+         adio_compressor = adio_compressor->next) {
+        strcat(*compressor_name_list, adio_compressor->name);
+        if (adio_compressor->next) {
+            strcat(*compressor_name_list, ",");
+        }
+    }
+
+    recent_name_list = *compressor_name_list;
+
+  fn_exit:
+    return length;
+}

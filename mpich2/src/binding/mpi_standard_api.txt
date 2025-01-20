@@ -1776,6 +1776,10 @@ MPIX_Register_compressor:
     compressor_deregister_fn: POLYFUNCTION, func_type=MPIX_Compressor_deregister_function, [function invoked when all resources are to be released at the end]
     info: INFO, [info argument]
     extra_state: EXTRA_STATE, [extra state]
+MPIX_Compressor_get_info:
+    info_used: INFO, direction=out, [new info object]
+MPIX_Compressor_set_info:
+    info: INFO, [info object]
 MPI_Request_c2f:
     .return: F90_REQUEST
     request: REQUEST, direction=in, pointer=False

@@ -536,3 +536,29 @@ static int hex_decode(const char *str, void *buf, int len)
 
     return 0;
 }
+
+
+int MPIOI_Lookup_compressor_list(char **compressor_name_list);
+int MPIR_Compressor_get_info_impl(MPIR_Info ** info_pp)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    /* Allocate an empty info object */
+    mpi_errno = MPIR_Info_alloc(info_pp);
+    if (mpi_errno != MPI_SUCCESS)
+        goto fn_fail;
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+int MPIR_Compressor_set_info_impl(MPIR_Info * info_ptr)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    /* Currently, this is just a no-op. */
+
+    return mpi_errno;
+}

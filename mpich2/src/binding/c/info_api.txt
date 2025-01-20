@@ -137,3 +137,9 @@ MPIX_Info_split_into_array:
         value. Based on this value, a suitable array_of_info can be created and
         passed to the procedure afterwards.
 */
+
+MPIX_Compressor_get_info:
+    .desc: Returns a new info object containing the hints
+
+MPIX_Compressor_set_info:
+    .desc: Set new values for the hints of a compressor

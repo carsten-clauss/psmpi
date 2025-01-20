@@ -46,6 +46,7 @@ void ADIO_End(int *error_code)
         ADIOI_Free(compressor_ptr);
         compressor_ptr = compressor_next;
     }
+    MPIOI_Lookup_compressor_list(NULL);
 
     if (ADIOI_syshints != MPI_INFO_NULL)
         MPI_Info_free(&ADIOI_syshints);
