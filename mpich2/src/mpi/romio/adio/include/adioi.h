@@ -874,6 +874,7 @@ int MPIOI_Lookup_compressor(const char *compressor_name,
                             void **extra_state);
 
 int MPIOI_Lookup_compressor_list(char **compressor_name_list);
+int MPIOI_Lookup_compressor_nth(int n, char **compressor_name);
 
 /* Unix-style file locking */
 

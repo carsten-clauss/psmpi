@@ -539,14 +539,63 @@ static int hex_decode(const char *str, void *buf, int len)
 
 
 int MPIOI_Lookup_compressor_list(char **compressor_name_list);
+int MPIOI_Lookup_compressor_nth(int n, char **compressor_name_list);
+
 int MPIR_Compressor_get_info_impl(MPIR_Info ** info_pp)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    /* Allocate an empty info object */
-    mpi_errno = MPIR_Info_alloc(info_pp);
-    if (mpi_errno != MPI_SUCCESS)
-        goto fn_fail;
+    /***************************************************/
+    /* add registered compressors as array-type info   */
+
+    char *compressor_string;
+    int compressor_num = 0;
+
+    compressor_num = MPIOI_Lookup_compressor_nth(-1, NULL);
+
+    if (compressor_num) {
+
+        MPIR_Info **info_array = MPL_malloc(compressor_num * sizeof(MPIR_Info *), MPL_MEM_OTHER);
+
+        for (int i = 0; i < compressor_num; i++) {
+
+            mpi_errno = MPIR_Info_alloc(&info_array[i]);
+            MPIR_ERR_CHECK(mpi_errno);
+
+            MPIOI_Lookup_compressor_nth(i, &compressor_string);
+
+            mpi_errno = MPIR_Info_set_impl(info_array[i], "compressor", compressor_string);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+
+        MPIR_Info_merge_from_array_impl(compressor_num, info_array, info_pp);
+
+        for (int i = 0; i < compressor_num; i++) {
+            mpi_errno = MPIR_Info_free_impl(info_array[i]);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+
+        MPL_free(info_array);
+
+    } else {
+
+        /* Allocate an empty info object */
+        mpi_errno = MPIR_Info_alloc(info_pp);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+    /***************************************************/
+    /* add registered compressors as string-coded list */
+
+    char *list_string;
+    int string_len;
+
+    string_len = MPIOI_Lookup_compressor_list(&list_string);
+
+    if (string_len) {
+        mpi_errno = MPIR_Info_set_impl(*info_pp, "compressor_list", list_string);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
 
   fn_exit:
     return mpi_errno;

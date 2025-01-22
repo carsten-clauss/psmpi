@@ -216,3 +216,23 @@ int MPIOI_Lookup_compressor_list(char **compressor_name_list)
   fn_exit:
     return length;
 }
+
+int MPIOI_Lookup_compressor_nth(int n, char **compressor_name)
+{
+    int i = 0;
+    ADIOI_Compressor *adio_compressor;
+
+    if (compressor_name)
+        *compressor_name = NULL;
+
+    for (adio_compressor = ADIOI_Compressor_head; adio_compressor;
+         adio_compressor = adio_compressor->next, i++) {
+
+        if (compressor_name && (i == n)) {
+            *compressor_name = adio_compressor->name;
+            break;
+        }
+    }
+
+    return i;
+}
