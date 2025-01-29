@@ -397,6 +397,8 @@ extern int * const MPI_WEIGHTS_EMPTY MPICH_API_PUBLIC;
 #define MPI_LOCK_EXCLUSIVE  234
 #define MPI_LOCK_SHARED     235
 
+#define MPIX_PARTITION_NULL (-1)
+
 /* C functions */
 typedef void (MPI_Handler_function) ( MPI_Comm *, int *, ... );
 typedef int (MPI_Comm_copy_attr_function)(MPI_Comm, int, void *, void *, 
