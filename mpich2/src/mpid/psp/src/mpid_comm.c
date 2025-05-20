@@ -357,20 +357,28 @@ int MPID_Get_max_badge(MPIR_Comm * comm, int *max_badge_p)
     MPIDI_PSP_topo_level_t *tl = MPIDI_Process.my_pg->topo_levels;
 
     if (tl == NULL) {
-        *max_badge_p = 0;
-        return MPI_ERR_OTHER;
-    }
+        if ((MPIDI_Process.env.enable_msa_awareness && MPIDI_Process.env.enable_msa_aware_collops)
+            || (MPIDI_Process.env.enable_smp_awareness &&
+                MPIDI_Process.env.enable_smp_aware_collops)) {
+            *max_badge_p = 0;
+            return MPI_ERR_OTHER;
+        } else {
+            /* No topo levels because no MSA features activated at runtime,
+             * use fallback solution of MPIR layer */
+            *max_badge_p = MPIR_Process.num_nodes;
+        }
+    } else {
+        while (tl->next && MPIDI_PSP_comm_is_flat_on_level(comm, tl)) {
+            MPIR_Assert(tl->badge_table);
+            tl = tl->next;
+        }
 
-    while (tl->next && MPIDI_PSP_comm_is_flat_on_level(comm, tl)) {
-        MPIR_Assert(tl->badge_table);
-        tl = tl->next;
+        /* The value we need to return here to the MPICH layer is the maximum badge of the
+         * level plus 1, where the "plus 1" corresponds to the "unknown badge" wildcard.
+         * (See also the definition of MPIDI_PSP_TOPO_BADGE__UNKNOWN.)
+         */
+        *max_badge_p = MPIDI_PSP_get_max_badge_by_level(tl) + 1;
     }
-
-    /* The value we need to return here to the MPICH layer is the maximum badge of the
-     * level plus 1, where the "plus 1" corresponds to the "unknown badge" wildcard.
-     * (See also the definition of MPIDI_PSP_TOPO_BADGE__UNKNOWN.)
-     */
-    *max_badge_p = MPIDI_PSP_get_max_badge_by_level(tl) + 1;
 
     return MPI_SUCCESS;
 }
