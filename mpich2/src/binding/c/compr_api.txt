@@ -1,0 +1,53 @@
+# vim: set ft=c:
+
+MPIX_Compressor_conversion_function:
+    .desc: Compressor inflate and deflate callback function
+    buf: C_BUFFER3
+    partition: PARTITION
+    count: POLYXFER_NUM_ELEM
+    datatype: DATATYPE
+    temp_buf: C_BUFFER3
+    size: POLYNUM_BYTES, direction=inout
+    extra_req_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Compressor_req_init_function:
+    .desc: Compressor callback function invoked to initialize a payload compressor for a communication request
+    buf: C_BUFFER3
+    partitions: PARTITION, direction=inout
+    count: POLYXFER_NUM_ELEM, direction=inout
+    datatype: DATATYPE, direction=inout
+    temp_buf: C_BUFFER3, direction=out
+    temp_buf_size: POLYNUM_BYTES, direction=out
+    extra_state: EXTRA_STATE
+    extra_req_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Compressor_req_free_function:
+    .desc: Compressor callback function invoked to release resources allocated by the compressor for a request
+    extra_req_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Compressor_deregister_function:
+    .desc: Compressor callback function invoked when all resources are to be released at the end
+    extra_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Register_compressor:
+    name: STRING, constant=True, [Name of the compressor to register (string)]
+    compressor_req_init_fn: FUNCTION_SMALL, func_type=MPIX_Compressor_req_init_function, [Callback function invoked to initialize a payload compressor for a request]
+    compressor_req_free_fn: FUNCTION_SMALL, func_type=MPIX_Compressor_req_free_function, [Callback function invoked to release resources allocated by the compressor for a request]
+    compressor_deflate_fn: FUNCTION_SMALL, func_type=MPIX_Compressor_conversion_function, [Callback function invoked to deflate a payload buffer before sending]
+    compressor_inflate_fn: FUNCTION_SMALL, func_type=MPIX_Compressor_conversion_function, [Callback function invoked to inflate a payload buffer after receiving]
+    compressor_deregister_fn: FUNCTION_SMALL, func_type=MPIX_Compressor_deregister_function, [Callback function invoked when all resources are to be released at the end]
+    info: INFO, [Info argument]
+    extra_state: EXTRA_STATE, [Extra state that is passed to req_init_fn and
+    deregister_fn (pointer)]
+    .desc: Register functions for user-defined payload compression
+    .skip: validate-FUNCTION_SMALL, validate-STRING
+{ -- error_check --
+    MPIR_ERRTEST_ARGNULL(name, "name", mpi_errno);
+    int namelen = (int) strlen(name);
+    MPIR_ERR_CHKANDJUMP(((namelen > MPIX_MAX_COMPRESSOR_STRING) || namelen < 1), mpi_errno,
+                        MPI_ERR_ARG, "**compressorname");
+}

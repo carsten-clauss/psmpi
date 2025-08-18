@@ -204,6 +204,7 @@ typedef struct MPIR_Stream MPIR_Stream;
 #include "mpir_attr.h"
 #include "mpir_group.h"
 #include "mpir_comm.h"
+#include "mpir_compr.h"
 #include "mpir_request.h"
 #include "mpir_progress_hook.h"
 #include "mpir_win.h"
