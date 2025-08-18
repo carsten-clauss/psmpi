@@ -46,4 +46,5 @@ noinst_PROGRAMS = \
     mpix_compressor_plg_nop \
     mpix_compressor_plg_d2i \
     mpix_compressor_plg_c2i \
-    mpix_compressor_plg_c2d2i
+    mpix_compressor_plg_c2d2i \
+    mpix_compressor_info
