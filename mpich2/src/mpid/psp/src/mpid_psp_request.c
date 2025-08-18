@@ -30,6 +30,7 @@ static inline void MPIDI_PSP_Request_partitioned_create_hook(MPIR_Request * req)
 {
     struct MPID_DEV_Request_partitioned *preq = &req->dev.kind.partitioned;
     preq->datatype = 0;
+    preq->compr_req = NULL;
 }
 
 static inline void MPIDI_PSP_Request_send_create_hook(MPIR_Request * req)
@@ -41,6 +42,25 @@ static inline void MPIDI_PSP_Request_send_create_hook(MPIR_Request * req)
 static inline void MPIDI_PSP_Request_send_destroy_hook(MPIR_Request * req)
 {
     MPIR_Assert(req->dev.kind.send.msg.tmp_buf == NULL);
+}
+
+static inline void MPIDI_PSP_Request_recv_create_hook(MPIR_Request * req)
+{
+    struct MPID_DEV_Request_recv *rreq = &req->dev.kind.recv;
+    rreq->compr_req = NULL;
+}
+
+static inline void MPIDI_PSP_Request_recv_destroy_hook(MPIR_Request * req)
+{
+    struct MPID_DEV_Request_recv *rreq = &req->dev.kind.recv;
+    if (rreq->compr_req)
+        MPL_free(rreq->compr_req);
+}
+
+static inline void MPIDI_PSP_Request_mprobe_create_hook(MPIR_Request * req)
+{
+    struct MPID_DEV_Request_mprobe *mreq = &req->dev.kind.mprobe;
+    mreq->mprobe_tag = NULL;
 }
 
 static inline void MPIDI_PSP_Request_persistent_destroy_hook(MPIR_Request * req)
@@ -60,6 +80,19 @@ static inline void MPIDI_PSP_Request_partitioned_destroy_hook(MPIR_Request * req
     struct MPID_DEV_Request_partitioned *preq = &req->dev.kind.partitioned;
     if (preq->datatype) {
         MPID_PSP_Datatype_release(preq->datatype);
+    }
+
+    if (preq->compr_req) {
+        if (preq->compr_req->compressor) {
+            if (preq->compr_req->compressor->req_free_fn &&
+                (preq->compr_req->compressor->req_free_fn != MPIX_COMPRESSOR_REQ_FREE_FN_NULL)) {
+                preq->compr_req->compressor->req_free_fn(preq->compr_req->extra_req_state);
+            }
+            if (preq->compr_req->compr_buffer && preq->compr_req->compr_buf_free) {
+                MPL_free(preq->compr_req->compr_buffer);
+            }
+        }
+        MPL_free(preq->compr_req);
     }
 }
 
@@ -127,16 +160,16 @@ void MPID_Request_create_hook(MPIR_Request * req)
             MPIDI_PSP_Request_partitioned_create_hook(req);
             break;
         case MPIR_REQUEST_KIND__RECV:
+            MPIDI_PSP_Request_recv_create_hook(req);
+            break;
         case MPIR_REQUEST_KIND__GREQUEST:
         case MPIR_REQUEST_KIND__COLL:
         case MPIR_REQUEST_KIND__SPAWN:
             break;
         case MPIR_REQUEST_KIND__MPROBE:
-            {
-                struct MPID_DEV_Request_mprobe *mreq = &req->dev.kind.mprobe;
-                mreq->mprobe_tag = NULL;
-                break;
-            }
+            MPIDI_PSP_Request_recv_create_hook(req);
+            MPIDI_PSP_Request_mprobe_create_hook(req);
+            break;
         case MPIR_REQUEST_KIND__PART:
         case MPIR_REQUEST_KIND__UNDEFINED:
         case MPIR_REQUEST_KIND__LAST:
@@ -164,6 +197,8 @@ void MPID_Request_destroy_hook(MPIR_Request * req)
             MPIDI_PSP_Request_partitioned_destroy_hook(req);
             break;
         case MPIR_REQUEST_KIND__RECV:
+            MPIDI_PSP_Request_recv_destroy_hook(req);
+            break;
         case MPIR_REQUEST_KIND__COLL:
         case MPIR_REQUEST_KIND__MPROBE:
         case MPIR_REQUEST_KIND__GREQUEST:

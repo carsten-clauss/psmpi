@@ -483,6 +483,8 @@ struct MPID_DEV_Request_recv {
     char *addr;
     int count;
     MPI_Datatype datatype;
+
+    struct MPIR_Compressor_request_recv *compr_req;
 };
 
 struct MPID_DEV_Request_mprobe {
@@ -552,6 +554,8 @@ struct MPID_DEV_Request_partitioned {
     bool *part_ready;           /* array with length equal to number of partitions, saving the ready status of each partition */
     int first_use;              /* 1 means this is the first call to MPI_start for this request, 0 means it is a consecutive call */
     int send_ctr;               /* counting submitted send requests */
+
+    struct MPIR_Compressor_request_part *compr_req;
 };
 
 struct MPI_Status;
