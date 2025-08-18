@@ -89,6 +89,9 @@ void MPIR_Info_setup_env(MPIR_Info * info_ptr, int argc, char **argv)
         MPIR_Info_push(info_ptr, "argv", command_args);
         MPL_free(command_args);
     }
+
+    /* Check and add registered compressors */
+    MPIR_Compressor_set_info(info_ptr);
 }
 
 #define INFO_INITIAL_SIZE 10

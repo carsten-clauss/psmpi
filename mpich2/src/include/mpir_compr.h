@@ -36,6 +36,13 @@ extern MPL_atomic_ptr_t MPIR_Compressor_head;
  * struct. If the name is not found as already registered, NULL is returned instead. */
 int MPIR_Compressor_lookup(const char *compressor_name, MPIR_Compressor ** compressor_pptr);
 
+int MPIR_Compressor_lookup_list(char **compressor_name_list, int *length);
+int MPIR_Compressor_lookup_nth(int n, char **compressor_name);
+int MPIR_Compressor_lookup_num(int *num);
+
+/* Attach general information about the registered compressors to a given info object */
+int MPIR_Compressor_set_info(MPIR_Info *);
+
 /* This function is to be used at the very end to release all registered compressors and
  * their allocated resources via their deregister function. */
 int MPIR_Compressor_deregister_all(void);
