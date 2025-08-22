@@ -4726,6 +4726,7 @@ mpich2/src/binding/c/attr_api.txt \
 mpich2/src/binding/c/binding_api.txt \
 mpich2/src/binding/c/coll_api.txt \
 mpich2/src/binding/c/comm_api.txt \
+mpich2/src/binding/c/compr_api.txt \
 mpich2/src/binding/c/datatype_api.txt \
 mpich2/src/binding/c/errhan_api.txt \
 mpich2/src/binding/c/f2c_api.txt \
@@ -4819,6 +4820,7 @@ mpich2/src/include/mpir_attr_generic.h \
 mpich2/src/include/mpir_bsend.h \
 mpich2/src/include/mpir_coll.h \
 mpich2/src/include/mpir_comm.h \
+mpich2/src/include/mpir_compr.h \
 mpich2/src/include/mpir_contextid.h \
 mpich2/src/include/mpir_csel.h \
 mpich2/src/include/mpir_datatype.h \
@@ -5188,6 +5190,9 @@ mpich2/src/mpi/comm/commutil.c \
 mpich2/src/mpi/comm/contextid.c \
 mpich2/src/mpi/comm/mpicomm.h \
 mpich2/src/mpi/comm/ulfm_impl.c \
+mpich2/src/mpi/compr/Makefile.mk \
+mpich2/src/mpi/compr/compr_util.c \
+mpich2/src/mpi/compr/register_compr_impl.c \
 mpich2/src/mpi/datatype/Makefile.mk \
 mpich2/src/mpi/datatype/create_f90.c \
 mpich2/src/mpi/datatype/datatype_impl.c \
@@ -8404,6 +8409,15 @@ mpich2/test/mpi/parastation/comm/num_contexts_4k.c \
 mpich2/test/mpi/parastation/comm/ps-test-minimal \
 mpich2/test/mpi/parastation/comm/split_type_integrity.c \
 mpich2/test/mpi/parastation/comm/testlist \
+mpich2/test/mpi/parastation/compr/Makefile.am \
+mpich2/test/mpi/parastation/compr/mpix_compressor_c2d2i.c \
+mpich2/test/mpi/parastation/compr/mpix_compressor_c2i.c \
+mpich2/test/mpi/parastation/compr/mpix_compressor_d2i.c \
+mpich2/test/mpi/parastation/compr/mpix_compressor_info.c \
+mpich2/test/mpi/parastation/compr/mpix_compressor_nop.c \
+mpich2/test/mpi/parastation/compr/mpix_compressor_plg.c \
+mpich2/test/mpi/parastation/compr/ps-test-minimal \
+mpich2/test/mpi/parastation/compr/testlist \
 mpich2/test/mpi/parastation/datatype/Makefile.am \
 mpich2/test/mpi/parastation/datatype/mixed_basic_to_derived.c \
 mpich2/test/mpi/parastation/datatype/mixed_contig_to_derived.c \
