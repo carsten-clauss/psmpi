@@ -349,8 +349,8 @@ int MPID_Init(int requested, int *provided)
     mpi_errno = MPIDI_PSP_socket_init();
     MPIR_ERR_CHECK(mpi_errno);
 
-    /* Init connections */
-    mpi_errno = MPIDI_PSP_connection_init();
+    /* Init connections for world comm (NULL) */
+    mpi_errno = MPIDI_PSP_connection_init(NULL);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Init global PG, representing the group of processes started together with me (my_pg). */

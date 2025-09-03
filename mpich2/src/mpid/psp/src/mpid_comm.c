@@ -772,3 +772,63 @@ int MPIDI_PSP_Comm_set_hints(MPIR_Comm * comm_ptr, MPIR_Info * info_ptr)
     MPIR_FUNC_EXIT;
     return mpi_errno;
 }
+
+/* Get all lpids in comm which belong to my_pg; also provide the size of the lpid array
+ * and the index of the calling process in the lpid array (rank within lpid array).
+ *
+ * For merged comms (MPI_INTERCOMM_MERGE) it can happen that there are lpids in a comm
+ * that do not belong to my_pg. This function excludes those lpids and provides an lpid
+ * array for only those lpids that belong to my_pg.
+ *
+ * If comm is NULL or there is no local group in the comm: comm == MPI_COMM_WORLD. In
+ * this case, only size and idx are set to my_pg size and rank, but lpids will be NULL
+ * to allow for shortcut code paths for the world comm. */
+int MPIDI_PSP_comm_get_my_pg_lpids(MPIR_Comm * comm, int **lpids, int *size, int *idx)
+{
+    int mpi_errno = MPI_SUCCESS;
+    int *_lpids = NULL;
+    int i, _size = 0, _idx = -1;
+
+    if (comm && comm->local_group) {
+        _lpids = MPL_malloc(MPIDI_Process.my_pg_size * sizeof(int), MPL_MEM_OTHER);
+        MPIR_ERR_CHKANDJUMP(!_lpids, mpi_errno, MPI_ERR_OTHER, "**nomem");
+
+        MPIR_Group *group = comm->local_group;
+        for (i = 0; i < group->size; i++) {
+            uint64_t lpid = group->lrank_to_lpid[i].lpid;
+            if (lpid < (uint64_t) MPIDI_Process.my_pg_size) {
+                /* Save lpids that belong to my_pg and remember own idx (rank) within lpid array
+                 * BEWARE: type cast between lpid (uint64_t) and int */
+                MPIR_Assert(lpid <= INT_MAX);
+                _lpids[_size] = (int) lpid;
+                if (_lpids[_size] == MPIDI_Process.my_pg_rank) {
+                    _idx = _size;
+                }
+                _size++;
+            }
+        }
+
+        MPIR_Assert(_size > 0);
+        MPIR_Assert(_idx >= 0);
+
+        /* Shrink the lpid array in size if required */
+        if (_size < MPIDI_Process.my_pg_size) {
+            _lpids = MPL_realloc(_lpids, _size * sizeof(int), MPL_MEM_OTHER);
+            MPIR_ERR_CHKANDJUMP(!_lpids, mpi_errno, MPI_ERR_OTHER, "**nomem");
+        }
+
+        *size = _size;
+        *idx = _idx;
+        *lpids = _lpids;
+    } else {
+        /* world comm */
+        *size = MPIDI_Process.my_pg_size;
+        *idx = MPIDI_Process.my_pg_rank;
+        *lpids = NULL;
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}

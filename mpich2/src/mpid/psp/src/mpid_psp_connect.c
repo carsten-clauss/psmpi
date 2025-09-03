@@ -125,19 +125,18 @@ int prep_settings_check(char **settings)
  * This can be relevant, e.g., in case of MSA runs where there might be
  * different module trees */
 static
-int do_settings_check(char *settings)
+int do_settings_check(char *settings, int *lpids, int size)
 {
     int mpi_errno = MPI_SUCCESS;
     int max_len_value = MPIR_pmi_max_val_size();
     int max_len_key = MPIR_pmi_max_key_size();
     int pg_rank = MPIDI_Process.my_pg_rank;
-    int pg_size = MPIDI_Process.my_pg_size;
     char *s = NULL;
     char *key = NULL;
     int diffs = 0;
 
     /* All processes compare their settings to that of all other processes */
-    if (MPIDI_Process.env.debug_settings && (pg_size >= 2)) {
+    if (MPIDI_Process.env.debug_settings && (size >= 2)) {
         /* Make sure that settings is a non-null string */
         MPIR_Assert(settings != NULL);
 
@@ -146,17 +145,20 @@ int do_settings_check(char *settings)
         key = MPL_malloc(max_len_key, MPL_MEM_OTHER);
         MPIR_ERR_CHKANDJUMP(!(key), mpi_errno, MPI_ERR_OTHER, "**nomem");
 
-        for (int i = 0; i < pg_size; i++) {
-            if (i == pg_rank) {
+        for (int i = 0; i < size; i++) {
+            int dest = lpids ? lpids[i] : i;
+            /* Skip self */
+            if (dest == pg_rank) {
                 continue;
             }
+
             memset(s, 0, max_len_value);
             memset(key, 0, max_len_key);
 
-            /* Use key for rank i */
-            snprintf(key, max_len_key, "%s.rank-%d", KEY_SETTINGS_CHECK, i);
+            /* Use key for rank dest */
+            snprintf(key, max_len_key, "%s.rank-%d", KEY_SETTINGS_CHECK, dest);
 
-            mpi_errno = MPIR_pmi_kvs_get(i, key, s, max_len_value);
+            mpi_errno = MPIR_pmi_kvs_get(dest, key, s, max_len_value);
             MPIR_ERR_CHECK(mpi_errno);
 
             if (strcmp(s, settings)) {
@@ -164,7 +166,7 @@ int do_settings_check(char *settings)
                     /* Print error msg on first diff */
                     fprintf(stderr,
                             "MPI error: different psmpi settings: own rank %d:'%s' != rank %d:'%s'\n",
-                            pg_rank, settings, i, s);
+                            pg_rank, settings, dest, s);
                 }
                 diffs++;
             }
@@ -199,7 +201,6 @@ void free_grank2con_mapping(void)
 {
     MPL_direct_free(MPIDI_Process.grank2con);
 }
-
 
 /* set connection */
 static
@@ -342,9 +343,9 @@ void mpid_con_accept(pscom_connection_t * new_connection)
 
 /* Wait for incoming connection from src rank */
 static
-void do_wait(int pg_rank, int src)
+void do_wait(int src)
 {
-    /* printf("Accepting (rank %d to %d).\n", src, pg_rank); */
+    /* printf("Accepting (rank %d to %d).\n", src, MPIDI_Process.my_pg_rank); */
     while (!grank2con_get(src)) {
         pscom_wait_any();
     }
@@ -361,14 +362,13 @@ void init_send_done(pscom_req_state_t state, void *priv)
 
 /* Open new pscom connection and connect to dest */
 static
-int do_connect(pscom_socket_t * socket, int pg_rank, int dest, char *ep_str,
-               pscom_connection_t ** con)
+int do_connect(pscom_socket_t * socket, int dest, char *ep_str, pscom_connection_t ** con)
 {
     int mpi_errno = MPI_SUCCESS;
     pscom_connection_t *_con;
     pscom_err_t rc;
 
-    /* printf("Connecting (rank %d to %d) (%s)\n", pg_rank, dest, ep_str); */
+    /* printf("Connecting (rank %d to %d) (%s)\n", MPIDI_Process.my_pg_rank, dest, ep_str); */
     _con = pscom_open_connection(socket);
     MPIR_ERR_CHKANDJUMP(!_con, mpi_errno, MPI_ERR_OTHER, "**psp|openconn");
 
@@ -396,7 +396,7 @@ int do_connect(pscom_socket_t * socket, int pg_rank, int dest, char *ep_str,
 
 /* Direct connect: Create connection to dest, send init message and wait for completion */
 static
-int do_connect_direct(pscom_socket_t * socket, int pg_rank, int dest, char *ep_str)
+int do_connect_direct(pscom_socket_t * socket, int dest, char *ep_str)
 {
     int mpi_errno = MPI_SUCCESS;
     pscom_connection_t *con;
@@ -404,11 +404,11 @@ int do_connect_direct(pscom_socket_t * socket, int pg_rank, int dest, char *ep_s
     int init_msg_sent = 0;
 
     /* open pscom connection and connect */
-    mpi_errno = do_connect(socket, pg_rank, dest, ep_str, &con);
+    mpi_errno = do_connect(socket, dest, ep_str, &con);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* send the initialization message and wait for its completion */
-    init_msg.from_rank = pg_rank;
+    init_msg.from_rank = MPIDI_Process.my_pg_rank;
     pscom_send_inplace(con, NULL, 0, &init_msg, sizeof(init_msg), init_send_done, &init_msg_sent);
 
     while (!init_msg_sent) {
@@ -423,38 +423,49 @@ int do_connect_direct(pscom_socket_t * socket, int pg_rank, int dest, char *ep_s
 
 /* Connect all processes in direct mode */
 static
-int connect_direct(pscom_socket_t * socket)
+int connect_direct(pscom_socket_t * socket, int *lpids, int size, int rank)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
-    int pg_rank = MPIDI_Process.my_pg_rank;
-    int pg_size = MPIDI_Process.my_pg_size;
 
-    /* connect ranks pg_rank..(pg_rank + pg_size/2) */
-    for (i = 0; i <= pg_size / 2; i++) {
-        int dest = (pg_rank + i) % pg_size;
-        int src = (pg_rank + pg_size - i) % pg_size;
+    /* connect ranks rank..(rank + size/2) */
+    for (i = 0; i <= size / 2; i++) {
+        int dest = (rank + i) % size;
+        int src = (rank + size - i) % size;
+        if (lpids) {
+            dest = lpids[dest];
+            src = lpids[src];
+        }
 
-        if (!i || (pg_rank / i) % 2) {
+        if (!i || (rank / i) % 2) {
             /* connect, accept */
-            mpi_errno = do_connect_direct(socket, pg_rank, dest, grank2ep_str_get(dest));
-            MPIR_ERR_CHECK(mpi_errno);
+            if (!grank2con_get(dest)) {
+                mpi_errno = do_connect_direct(socket, dest, grank2ep_str_get(dest));
+                MPIR_ERR_CHECK(mpi_errno);
+            }
             if (!i || src != dest) {
-                do_wait(pg_rank, src);
+                if (!grank2con_get(src)) {
+                    do_wait(src);
+                }
             }
         } else {
             /* accept, connect */
-            do_wait(pg_rank, src);
+            if (!grank2con_get(src)) {
+                do_wait(src);
+            }
             if (src != dest) {
-                mpi_errno = do_connect_direct(socket, pg_rank, dest, grank2ep_str_get(dest));
-                MPIR_ERR_CHECK(mpi_errno);
+                if (!grank2con_get(dest)) {
+                    mpi_errno = do_connect_direct(socket, dest, grank2ep_str_get(dest));
+                    MPIR_ERR_CHECK(mpi_errno);
+                }
             }
         }
     }
 
-    /* Wait for all connections: (already done?) */
-    for (i = 0; i < pg_size; i++) {
-        while (!grank2con_get(i)) {
+    /* Wait for all missing connections: (already done?) */
+    for (i = 0; i < size; i++) {
+        int dest = lpids ? lpids[i] : i;
+        while (!grank2con_get(dest)) {
             pscom_wait_any();
         }
     }
@@ -467,17 +478,18 @@ int connect_direct(pscom_socket_t * socket)
 
 /* Connect all processes in ondemand mode */
 static
-int connect_ondemand(pscom_socket_t * socket)
+int connect_ondemand(pscom_socket_t * socket, int *lpids, int size)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
-    int pg_rank = MPIDI_Process.my_pg_rank;
-    int pg_size = MPIDI_Process.my_pg_size;
 
     /* Create all connections */
-    for (i = 0; i < pg_size; i++) {
-        mpi_errno = do_connect(socket, pg_rank, i, grank2ep_str_get(i), NULL);
-        MPIR_ERR_CHECK(mpi_errno);
+    for (i = 0; i < size; i++) {
+        int dest = lpids ? lpids[i] : i;
+        if (!grank2con_get(dest)) {
+            mpi_errno = do_connect(socket, dest, grank2ep_str_get(dest), NULL);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
     }
 
   fn_exit:
@@ -524,9 +536,10 @@ int get_ep_str(pscom_socket_t * socket, char **ep_str)
     goto fn_exit;
 }
 
-/* Exchange endpoint strings of all processes */
+/* Exchange endpoint strings of all processes in the lpids array
+ * lpids == NULL means: world comm */
 static
-int exchange_ep_strs(pscom_socket_t * socket)
+int exchange_ep_strs(pscom_socket_t * socket, int *lpids, int size)
 {
     int mpi_errno = MPI_SUCCESS;
     char *key = NULL;
@@ -536,7 +549,6 @@ int exchange_ep_strs(pscom_socket_t * socket)
     const char *base_key = "psp-conn";
     int i;
     int pg_rank = MPIDI_Process.my_pg_rank;
-    int pg_size = MPIDI_Process.my_pg_size;
     char *ep_str = NULL;
     char *settings = NULL;
 
@@ -544,8 +556,7 @@ int exchange_ep_strs(pscom_socket_t * socket)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* For only one process there is no need to exchange any connection infos */
-    if (pg_size > 1) {
-
+    if (size > 1) {
         mpi_errno = prep_settings_check(&settings);
         MPIR_ERR_CHECK(mpi_errno);
 
@@ -562,20 +573,36 @@ int exchange_ep_strs(pscom_socket_t * socket)
         }
 
         if (MPIDI_Process.env.debug_settings || ep_str) {
-            mpi_errno = MPIR_pmi_barrier();
+            if (lpids && (size < MPIDI_Process.my_pg_size)) {
+                mpi_errno = MPIR_pmi_barrier_group(lpids, size);
+            } else {
+                /* Use world barrier for world comm and comms that have size of world comm */
+                mpi_errno = MPIR_pmi_barrier();
+            }
             MPIR_ERR_CHECK(mpi_errno);
-        } else if (!ep_str && MPIDI_Process.env.enable_lightweight_init_barrier) {
-            mpi_errno = MPIR_pmi_barrier_only();
+        } else if (MPIDI_Process.env.enable_lightweight_init_barrier) {
+            if (lpids && (size < MPIDI_Process.my_pg_size)) {
+                mpi_errno = MPIR_pmi_barrier_only_group(lpids, size);
+            } else {
+                /* Use lightweight world barrier for world comm and comms that have size of world comm */
+                mpi_errno = MPIR_pmi_barrier_only();
+            }
             MPIR_ERR_CHECK(mpi_errno);
         }
 
-        mpi_errno = do_settings_check(settings);
+        mpi_errno = do_settings_check(settings, lpids, size);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
-    /* Get endpoints from other processes */
-    for (i = 0; i < pg_size; i++) {
+    /* Get endpoints from other processes in comm */
+    for (i = 0; i < size; i++) {
+        int dest = lpids ? lpids[i] : i;
         if (ep_str) {
+            /* Skip if we know dest's endpoint string already */
+            if (grank2ep_str_get(dest)) {
+                continue;
+            }
+
             if (!val) {
                 val = MPL_calloc(max_len_value, sizeof(char), MPL_MEM_STRINGS);
                 MPIR_ERR_CHKANDJUMP(!val, mpi_errno, MPI_ERR_OTHER, "**nomem");
@@ -583,12 +610,13 @@ int exchange_ep_strs(pscom_socket_t * socket)
                 memset(val, 0, max_len_value);
             }
 
-            if (i != pg_rank) {
-                /* Create KVS key for rank "i" */
+            if (dest != pg_rank) {
+                /* Erase any content from the (previously used) key */
                 memset(key, 0, max_len_key);
-                snprintf(key, max_len_key, "%s%i", base_key, i);
-                /*"i" is the source who published the information */
-                mpi_errno = MPIR_pmi_kvs_get(i, key, val, max_len_value);
+                /* Create KVS key for rank "dest" */
+                snprintf(key, max_len_key, "%s%i", base_key, dest);
+                /* "dest" is the source who published the information */
+                mpi_errno = MPIR_pmi_kvs_get(dest, key, val, max_len_value);
                 MPIR_ERR_CHECK(mpi_errno);
 
                 /* Make sure we got non-null string back from the KVS */
@@ -598,9 +626,9 @@ int exchange_ep_strs(pscom_socket_t * socket)
                 MPIR_Assert(strlen(ep_str) < max_len_value);
                 strncpy(val, ep_str, max_len_value);
             }
-            mpi_errno = grank2ep_str_set(i, val);
+            mpi_errno = grank2ep_str_set(dest, val);
         } else {
-            mpi_errno = grank2ep_str_set(i, NULL);
+            mpi_errno = grank2ep_str_set(dest, NULL);
         }
         MPIR_ERR_CHECK(mpi_errno);
     }
@@ -615,20 +643,34 @@ int exchange_ep_strs(pscom_socket_t * socket)
     goto fn_exit;
 }
 
-/* Initialize all connections (either direct connect mode or ondemand) */
-int MPIDI_PSP_connection_init(void)
+int MPIDI_PSP_connection_init(MPIR_Comm * comm)
 {
     int mpi_errno = MPI_SUCCESS;
     pscom_err_t rc;
-    static int first_init = 1;
     pscom_socket_t *socket = MPIDI_Process.socket;
+    static int first_init = 1;
+    bool fast_path = true;
+    int *lpids = NULL;
+    int size = 0, rank = -1;
 
-    MPIR_Assert(socket != NULL);
+    /* This function is collective over comm, get the lpids of the processes in
+     * comm so that we know who is in comm for all following steps.
+     *
+     * If comm is NULL (world comm), lpids will be NULL. */
+    mpi_errno = MPIDI_PSP_comm_get_my_pg_lpids(comm, &lpids, &size, &rank);
+    MPIR_ERR_CHECK(mpi_errno);
 
-    if (grank2con_get(MPIDI_Process.my_pg_rank) != NULL) {
-        /* If we have stored our own conn already we are in re-init and kept
-         * the connections alive, nothing to do here */
-        MPIR_Assert(MPIDI_Process.env.enable_keep_connections >= 1);
+    /* Check if we have to do something or if connections to all processes of
+     * the comm are already available */
+    for (int i = 0; i < size; i++) {
+        int dest = lpids ? lpids[i] : i;
+        if (!grank2con_get(dest)) {
+            fast_path = false;  /* There is at least one connection missing */
+            break;
+        }
+    }
+
+    if (fast_path) {
         goto fn_exit;
     }
 
@@ -637,11 +679,6 @@ int MPIDI_PSP_connection_init(void)
         rc = pscom_listen(socket, PSCOM_ANYPORT);
         MPIR_ERR_CHKANDJUMP1((rc != PSCOM_SUCCESS), mpi_errno, MPI_ERR_OTHER,
                              "**psp|listen_anyport", "**psp|listen_anyport %s", pscom_err_str(rc));
-
-        /* Distribute and store endpoint strings */
-        mpi_errno = exchange_ep_strs(socket);
-        MPIR_ERR_CHECK(mpi_errno);
-
         first_init = 0;
     } else {
         /* Start to listen again for incoming connections on the port assigned
@@ -670,10 +707,14 @@ int MPIDI_PSP_connection_init(void)
 #endif
     }
 
+    /* Distribute any missing contact information and store endpoint strings */
+    mpi_errno = exchange_ep_strs(socket, lpids, size);
+    MPIR_ERR_CHECK(mpi_errno);
+
     if (MPIDI_Process.env.enable_direct_connect) {
-        mpi_errno = connect_direct(socket);
+        mpi_errno = connect_direct(socket, lpids, size, rank);
     } else {
-        mpi_errno = connect_ondemand(socket);
+        mpi_errno = connect_ondemand(socket, lpids, size);
     }
     MPIR_ERR_CHECK(mpi_errno);
 
@@ -688,6 +729,7 @@ int MPIDI_PSP_connection_init(void)
     MPID_enable_receive_dispach(socket);
 
   fn_exit:
+    MPL_free(lpids);
     return mpi_errno;
   fn_fail:
     goto fn_exit;

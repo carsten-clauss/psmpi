@@ -133,6 +133,7 @@ int MPID_PSP_comm_init(int has_parent);
 void MPID_PSP_comm_set_vcrt(MPIR_Comm * comm, MPIDI_VCRT_t * vcrt);
 void MPID_PSP_comm_set_local_vcrt(MPIR_Comm * comm, MPIDI_VCRT_t * vcrt);
 void MPID_PSP_comm_create_mapper(MPIR_Comm * comm);
+int MPIDI_PSP_comm_get_my_pg_lpids(MPIR_Comm * comm, int **lipds, int *size, int *idx);
 
 int MPIDI_PG_Create(int pg_size, int pg_id_num, MPIDI_PSP_topo_level_t * level,
                     MPIDI_PG_t ** pg_ptr);
@@ -141,7 +142,7 @@ void MPIDI_PG_Convert_id(char *pg_id_name, int *pg_id_num);
 int MPIDI_PSP_PG_init(void);
 void MPIDI_PSP_PG_finalize(void);
 
-int MPIDI_PSP_connection_init(void);
+int MPIDI_PSP_connection_init(MPIR_Comm * comm);
 int MPIDI_PSP_grank2con_mapping_init(void);
 int MPIDI_PSP_grank2ep_str_mapping_init(void);
 int MPIDI_PSP_socket_init(void);
