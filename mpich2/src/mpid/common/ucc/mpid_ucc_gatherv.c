@@ -40,6 +40,20 @@ static inline ucc_status_t mpidi_ucc_gatherv_init(const void *sbuf, MPI_Aint sco
         ucc_sdt = mpidi_mpi_dtype_to_ucc_dtype(sdtype);
     }
 
+    if (ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_S(gatherv);
+        ucc_sdt =
+            mpidi_ucc_dytpe_packing_send(sbuf, scount, 1 /* single send chunk */ , sdtype, req);
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(gatherv, ucc_sdt);
+    }
+
+    if (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_R(gatherv);
+        ucc_rdt =
+            mpidi_ucc_dytpe_packing_recv_prepv(rbuf, rcounts, rdispls, rdtype, comm_size, req);
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(gatherv, ucc_rdt);
+    }
+
     if ((ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) ||
         (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED)) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_UNSUPPORTED(gatherv);
@@ -61,16 +75,17 @@ static inline ucc_status_t mpidi_ucc_gatherv_init(const void *sbuf, MPI_Aint sco
         .coll_type = UCC_COLL_TYPE_GATHERV,
         .root = root,
         .src.info = {
-                     .buffer = (void *) sbuf,
-                     .count = scount,
+                     .buffer = req->sbuf_tmp ? req->sbuf_tmp : (void *) sbuf,
+                     .count = req->scounts_tmp ? req->scounts_tmp[0] : scount,
                      .datatype = ucc_sdt,
                      .mem_type = UCC_MEMORY_TYPE_UNKNOWN,
                      }
         ,
         .dst.info_v = {
-                       .buffer = rbuf,
-                       .counts = (ucc_count_t *) rcounts,
-                       .displacements = (ucc_aint_t *) rdispls,
+                       .buffer = req->rbuf_tmp ? req->rbuf_tmp : rbuf,
+                       .counts = (ucc_count_t *) (req->rcounts_tmp ? req->rcounts_tmp : rcounts),
+                       .displacements =
+                       (ucc_aint_t *) (req->rdispls_tmp ? req->rdispls_tmp : rdispls),
                        .datatype = ucc_rdt,
                        .mem_type = UCC_MEMORY_TYPE_UNKNOWN,
                        }
@@ -112,12 +127,15 @@ int MPIDI_common_ucc_gatherv(const void *sbuf, MPI_Aint scount, MPI_Datatype sdt
                              MPI_Datatype rdtype, int root, MPIR_Comm * comm_ptr)
 {
     int mpidi_ucc_err = MPIDI_COMMON_UCC_RETVAL_SUCCESS;
+    int comm_size = MPIR_Comm_size(comm_ptr);
     MPIDI_common_ucc_req_t req = { 0 };
 
     MPIDI_COMMON_UCC_WRAPPER_ENTER(gatherv);
 
     MPIDI_COMMON_UCC_WRAPPER_EXECUTE(gatherv, sbuf, scount, sdtype, rbuf, rcounts, rdispls, rdtype,
                                      root, comm_ptr, &req);
+
+    mpidi_ucc_dytpe_packing_recv_donev(rbuf, rcounts, rdispls, rdtype, comm_size, &req);
 
     MPIDI_COMMON_UCC_WRAPPER_EXIT(gatherv);
 }

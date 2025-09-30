@@ -39,6 +39,20 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
         ucc_rdt = mpidi_mpi_dtype_to_ucc_dtype(rdtype);
     }
 
+    if (ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_S(scatterv);
+        ucc_sdt = mpidi_ucc_dytpe_packing_sendv(sbuf, scounts, sdispls, comm_size, sdtype, req);
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(scatterv, ucc_sdt);
+    }
+
+    if (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_R(scatter);
+        ucc_rdt =
+            mpidi_ucc_dytpe_packing_recv_prep(rbuf, rcount, rdtype, 1 /* single recv chunk */ ,
+                                              req);
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(scatter, ucc_rdt);
+    }
+
     if ((ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) ||
         (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED)) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_UNSUPPORTED(scatterv);
@@ -60,16 +74,17 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
         .coll_type = UCC_COLL_TYPE_SCATTERV,
         .root = root,
         .src.info_v = {
-                       .buffer = (void *) sbuf,
-                       .counts = (ucc_count_t *) scounts,
-                       .displacements = (ucc_aint_t *) sdispls,
+                       .buffer = req->sbuf_tmp ? req->sbuf_tmp : (void *) sbuf,
+                       .counts = (ucc_count_t *) (req->scounts_tmp ? req->scounts_tmp : scounts),
+                       .displacements =
+                       (ucc_aint_t *) (req->sdispls_tmp ? req->sdispls_tmp : sdispls),
                        .datatype = ucc_sdt,
                        .mem_type = UCC_MEMORY_TYPE_UNKNOWN,
                        }
         ,
         .dst.info = {
-                     .buffer = rbuf,
-                     .count = rcount,
+                     .buffer = req->rbuf_tmp ? req->rbuf_tmp : rbuf,
+                     .count = req->rcounts_tmp ? req->rcounts_tmp[0] : rcount,
                      .datatype = ucc_rdt,
                      .mem_type = UCC_MEMORY_TYPE_UNKNOWN,
                      }
@@ -117,6 +132,8 @@ int MPIDI_common_ucc_scatterv(const void *sbuf, const MPI_Aint scounts[], const 
 
     MPIDI_COMMON_UCC_WRAPPER_EXECUTE(scatterv, sbuf, scounts, sdispls, sdtype, rbuf, rcount, rdtype,
                                      root, comm_ptr, &req);
+
+    mpidi_ucc_dytpe_packing_recv_done(rbuf, rcount, rdtype, 1 /* single recv chunk */ , &req);
 
     MPIDI_COMMON_UCC_WRAPPER_EXIT(scatterv);
 }

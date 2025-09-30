@@ -115,6 +115,16 @@ extern const char *MPIDI_COMMON_UCC_VERBOSE_LEVEL_TO_STRING[];
 typedef struct {
     ucc_coll_req_h ucc_req;
     MPIR_Request *mpir_req;
+    /* the following members are all used for datatype packing: */
+    MPI_Aint basic_size;        /* size if the basic datatype (or 0 if packing was not possible or necessary) */
+    void *sbuf_tmp;             /* (adjusted) pointer to a (temporary) send buffer (or NULL) */
+    void *sbuf_free;            /* pointer to a dynamically allocated (temporary) send buffer to be released later on (or NULL) */
+    MPI_Aint *scounts_tmp;      /* temporary storage of the `scount` argument for a later access via the request handle */
+    MPI_Aint *sdispls_tmp;      /* temporary storage of the `sdispls` argument for a later access via the request handle */
+    void *rbuf_tmp;             /* (adjusted) pointer to a (temporary) receive buffer (or NULL) */
+    void *rbuf_free;            /* pointer to a dynamically allocated (temporary) send buffer to be released later on (or NULL) */
+    MPI_Aint *rcounts_tmp;      /* temporary storage of the `rcount` argument for a later access via the request handle */
+    MPI_Aint *rdispls_tmp;      /* temporary storage of the `rdispls` argument for a later access via the request handle */
 } MPIDI_common_ucc_req_t;
 
 typedef struct {

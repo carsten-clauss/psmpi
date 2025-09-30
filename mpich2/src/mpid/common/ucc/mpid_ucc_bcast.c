@@ -18,7 +18,21 @@ static inline ucc_status_t mpidi_ucc_bcast_init(void *buf, MPI_Aint count,
                                                 MPI_Datatype dtype, int root,
                                                 MPIR_Comm * comm_ptr, MPIDI_common_ucc_req_t * req)
 {
+    int comm_rank = MPIR_Comm_rank(comm_ptr);
     ucc_datatype_t ucc_dt = mpidi_mpi_dtype_to_ucc_dtype(dtype);
+
+    if (ucc_dt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY(bcast);
+        if (comm_rank == root) {
+            ucc_dt =
+                mpidi_ucc_dytpe_packing_send(buf, count, 1 /* single send chunk */ , dtype, req);
+        } else {
+            ucc_dt =
+                mpidi_ucc_dytpe_packing_recv_prep(buf, count, dtype, 1 /* single recv chunk */ ,
+                                                  req);
+        }
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(bcast, ucc_dt);
+    }
 
     if (ucc_dt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_UNSUPPORTED(bcast);
@@ -31,8 +45,12 @@ static inline ucc_status_t mpidi_ucc_bcast_init(void *buf, MPI_Aint count,
         .coll_type = UCC_COLL_TYPE_BCAST,
         .root = root,
         .src.info = {
-                     .buffer = buf,
-                     .count = count,
+                     .buffer =
+                     req->sbuf_tmp ? req->sbuf_tmp : (req->rbuf_tmp ? req->rbuf_tmp : buf),
+                     .count =
+                     req->scounts_tmp ? req->scounts_tmp[0] : (req->
+                                                               rcounts_tmp ? req->rcounts_tmp[0] :
+                                                               count),
                      .datatype = ucc_dt,
                      .mem_type = UCC_MEMORY_TYPE_UNKNOWN,
                      }
@@ -60,6 +78,8 @@ int MPIDI_common_ucc_bcast(void *buf, MPI_Aint count, MPI_Datatype dtype, int ro
     MPIDI_COMMON_UCC_WRAPPER_ENTER(bcast);
 
     MPIDI_COMMON_UCC_WRAPPER_EXECUTE(bcast, buf, count, dtype, root, comm_ptr, &req);
+
+    mpidi_ucc_dytpe_packing_recv_done(buf, count, dtype, 1 /* single recv chunk */ , &req);
 
     MPIDI_COMMON_UCC_WRAPPER_EXIT(bcast);
 }
