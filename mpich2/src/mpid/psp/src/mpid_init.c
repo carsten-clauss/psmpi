@@ -55,7 +55,6 @@ MPIDI_Process_t MPIDI_Process = {
                 dinit(enable_direct_connect_spawn) 0,
                 dinit(enable_msa_awareness) 0,
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
-                dinit(enable_smp_aware_collops) 0,
                 dinit(enable_msa_aware_collops) 1,
 #endif
 #ifdef MPID_PSP_HISTOGRAM
@@ -166,8 +165,6 @@ void mpid_env_init(void)
 #endif
 
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
-    /* use hierarchy-aware collectives on SMP level */
-    pscom_env_get_uint(&MPIDI_Process.env.enable_smp_aware_collops, "PSP_SMP_AWARE_COLLOPS");
 #if !defined(HAVE_HCOLL) && !defined(HAVE_UCC)
     /* The usage of HCOLL/UCC and MSA aware collops are mutually exclusive.
      * Use hierarchy-aware collectives on MSA level only if HCOLL and/or UCC is not enabled */
