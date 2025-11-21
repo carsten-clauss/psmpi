@@ -64,7 +64,7 @@ endif
 
 HELPTOKEN   := help
 TESTSUMMARY := mpich2/test/mpi/summary
-TESTSETFILES:= testlist testlist.dtp testlist.cvar testlist.gpu ps-test-minimal
+TESTSETFILES:= testlist testlist.dtp testlist.cvar testlist.gpu ps-test-minimal ps-test-ucc
 ifdef TESTDIR
 TESTDIR_    := $(subst /,-,$(TESTDIR)_)
 TESTFOLDERS := $(shell cd $(SRCDIR)/mpich2/test/mpi && dirname $$(find . -mindepth 2 -type f -name "testlist" -o -name "testlist.in" | cut -d"/" -f2-))
