@@ -14,6 +14,7 @@ AC_PROG_CC
 
 CONF_ADI3_DEVICE="psp"
 CONF_ECHO_PREFIX="psmpi: "
+CONF_NAMEPUBLISHER="file"
 
 # AC_PROG_INSTALL
 # AC_PROG_RANLIB
@@ -661,6 +662,24 @@ AC_ARG_WITH([ucc], [
 	CONF_OPS="$CONF_OPS --without-ucc"
 ])
 
+EXPLICIT_NAMEPUBLISHER="false"
+AC_ARG_WITH([namepublisher], [
+  --with-namepublisher=name
+                          Choose the service that will support MPI_PUBLISH/LOOKUP_NAME. Default: file.
+			  To use MPICH's default, specify 'mpich' instead of stating a name.
+],[
+	if test "x$with_namepublisher" != "xyes" ; then
+	   EXPLICIT_NAMEPUBLISHER="true"
+	fi
+
+	if test "x$with_namepublisher" = "xmpich" ; then
+	   CONF_OPS="$CONF_OPS --with-namepublisher=default"
+	fi
+],[
+	CONF_OPS="$CONF_OPS --with-namepublisher=$CONF_NAMEPUBLISHER"
+])
+
+
 AC_ARG_WITH([cuda], [
   --with-cuda[[=path]]
 			  Use CUDA awareness within ParaStation MPI (and specify path to CUDA directory)
@@ -866,6 +885,16 @@ if test -n "$WITH_HCOLL_DIR" ; then
 fi
 if test "$DISABLE_UCC" = "false" ; then
    conf_echo "UCC support."
+fi
+if test "$EXPLICIT_NAMEPUBLISHER" = "true" ; then
+   case "$with_namepublisher" in
+	mpich|default)
+		conf_echo "MPICH's default name publishing service." ;;
+	no)
+		conf_echo "disabled name publishing service." ;;
+	*)
+		conf_echo "\"$with_namepublisher\" as the explicitly chosen name publishing service." ;;
+   esac
 fi
 if test "${CONF_ADI3_DEVICE}" != "psp" -a "${CONF_ECHO_SUMMARY_PRINTED}" = "yes" ; then
    echo "${CONF_ECHO_PREFIX}WARNING Top-level configure arguments for devices other than psp are propagated, but their effectiveness is not checked."
