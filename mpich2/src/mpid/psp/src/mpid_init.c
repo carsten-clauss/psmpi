@@ -62,7 +62,7 @@ MPIDI_Process_t MPIDI_Process = {
 #ifdef MPID_PSP_HISTOGRAM
                 dinit(enable_histogram) 0,
 #endif
-#ifdef MPID_PSP_HCOLL_STATS
+#ifdef MPID_PSP_COLLOPS_STATS
                 dinit(enable_collops_stats) 0,
 #endif
 #ifdef MPID_PSP_HCOLL_STATS
@@ -127,7 +127,7 @@ MPIDI_Process_t MPIDI_Process = {
                                 }
                   ,
 #endif
-#ifdef MPID_PSP_HCOLL_STATS
+#ifdef MPID_PSP_UCC_STATS
                   dinit(ucc) {
                               dinit(counter) {0}
                               ,
