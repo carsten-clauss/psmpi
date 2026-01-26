@@ -267,6 +267,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_send(const void *sbuf, MPI_
     MPI_Aint true_lb;
     size_t data_size;
 
+    if (MPIDI_common_ucc_priv.dtype_packing_disabled)
+        goto fn_fail;
+
     MPIDI_Datatype_get_info(scount, mpi_dtype, contig, data_size, dtype_ptr, true_lb);
     MPIR_Datatype_get_basic_type(mpi_dtype, basic_dtype);
     req->basic_size = MPIR_Datatype_get_basic_size(basic_dtype);
@@ -298,6 +301,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_send(const void *sbuf, MPI_
 
   fn_exit:
     return ucc_dtype;
+  fn_fail:
+    ucc_dtype = MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED;
+    goto fn_exit;
 }
 
 static inline ucc_datatype_t mpidi_ucc_dytpe_packing_sendv(const void *sbuf,
@@ -314,6 +320,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_sendv(const void *sbuf,
     MPI_Datatype basic_dtype = MPI_DATATYPE_NULL;
     MPI_Aint actual_packed_bytes;
     MPI_Aint size_of_pack_buffer;
+
+    if (MPIDI_common_ucc_priv.dtype_packing_disabled)
+        goto fn_fail;
 
     MPIR_Datatype_get_basic_type(mpi_dtype, basic_dtype);
     req->basic_size = MPIR_Datatype_get_basic_size(basic_dtype);
@@ -354,6 +363,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_sendv(const void *sbuf,
 
   fn_exit:
     return ucc_dtype;
+  fn_fail:
+    ucc_dtype = MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED;
+    goto fn_exit;
 }
 
 static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prep(const void *rbuf, MPI_Aint rcount,
@@ -367,6 +379,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prep(const void *rbuf,
     MPI_Datatype basic_dtype = MPI_DATATYPE_NULL;
     MPI_Aint true_lb;
     size_t data_size;
+
+    if (MPIDI_common_ucc_priv.dtype_packing_disabled)
+        goto fn_fail;
 
     MPIDI_Datatype_get_info(rcount, mpi_dtype, contig, data_size, dtype_ptr, true_lb);
     MPIR_Datatype_get_basic_type(mpi_dtype, basic_dtype);
@@ -393,6 +408,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prep(const void *rbuf,
 
   fn_exit:
     return ucc_dtype;
+  fn_fail:
+    ucc_dtype = MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED;
+    goto fn_exit;
 }
 
 static inline void mpidi_ucc_dytpe_packing_recv_done(void *rbuf, MPI_Aint rcount,
@@ -421,6 +439,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prepv(const void *rbuf
     MPI_Aint total_len = 0;
     MPI_Datatype basic_dtype = MPI_DATATYPE_NULL;
     MPI_Aint size_of_pack_buffer;
+
+    if (MPIDI_common_ucc_priv.dtype_packing_disabled)
+        goto fn_fail;
 
     MPIR_Datatype_get_basic_type(mpi_dtype, basic_dtype);
     req->basic_size = MPIR_Datatype_get_basic_size(basic_dtype);
@@ -454,6 +475,9 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prepv(const void *rbuf
 
   fn_exit:
     return ucc_dtype;
+  fn_fail:
+    ucc_dtype = MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED;
+    goto fn_exit;
 }
 
 static inline void mpidi_ucc_dytpe_packing_recv_donev(void *rbuf, const MPI_Aint rcounts[],

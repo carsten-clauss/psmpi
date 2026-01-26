@@ -13,7 +13,20 @@
 
 #include <ucc/api/ucc.h>
 
-int MPIDI_common_ucc_enable(int verbose_level, const char *verbose_level_str, int debug_flag);
+typedef struct {
+    int verbose_level;          /* verbosity level of the UCC wrappers (see `MPIDI_COMMON_UCC_VERBOSE_LEVELS`),
+                                 * positive values including all lower ones, while negative values select the
+                                 * respective level exclusively */
+    const char *verbose_level_str;      /* alternative parameter to `verbosity_level` specifying the level as a
+                                         * string and that is only checked if `verbosity_level` is set to 0 */
+    int debug_flag;             /* flag for activating the debugging mode that yields even more verbose output
+                                 * if the `NDEBUG` macro is *not* set */
+    int relaxed_flag;           /* flag for activating more aggressive but unsafe optimizations (by default,
+                                 * the UCC wrappers attempt to be as MPI-compliant as possible, but certain
+                                 * optimizations might promise better performance at the cost of compliance) */
+} MPIDI_common_ucc_config_t;
+
+int MPIDI_common_ucc_enable(MPIDI_common_ucc_config_t * config);
 int MPIDI_common_ucc_progress(int *made_progress);
 int MPIDI_common_ucc_comm_create_hook(MPIR_Comm * comm_ptr);
 int MPIDI_common_ucc_comm_destroy_hook(MPIR_Comm * comm_ptr);

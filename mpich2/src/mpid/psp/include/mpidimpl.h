@@ -192,9 +192,10 @@ typedef struct MPIDI_Process {
 #endif
 #ifdef HAVE_UCC
         struct {
-            unsigned enabled;
-            unsigned verbose;
-            unsigned debug;
+            int enabled;
+            char *verbose_level_str;
+            int debug_flag;
+            int relaxed_flag;
         } ucc;
 #endif
         unsigned enable_lazy_disconnect;

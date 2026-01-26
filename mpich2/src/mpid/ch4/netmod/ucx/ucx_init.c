@@ -49,6 +49,17 @@ cvars:
       description : >-
         Set verbosity output level for UCC wrappers.
 
+    - name        : MPIR_CVAR_CH4_UCX_UCC_ENABLE_RELAXED_STDCOMPLIANCE
+      category    : CH4_UCX
+      alt-env     : MPIR_CVAR_CH4_UCC_ENABLE_RELAXED_STDCOMPLIANCE
+      type        : boolean
+      default     : false
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_LOCAL
+      description : >-
+        Enable (unsafe) optimizations for the UCC wrappers.
+
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -102,9 +113,13 @@ static int init_worker(int vci)
 
 #ifdef HAVE_UCC
     if (MPIR_CVAR_CH4_UCX_ENABLE_UCC) {
-        int verbose_level = atoi(MPIR_CVAR_CH4_UCX_UCC_VERBOSITY_LEVEL);
-        MPIDI_common_ucc_enable(verbose_level, MPIR_CVAR_CH4_UCX_UCC_VERBOSITY_LEVEL,
-                                MPIR_CVAR_CH4_UCX_UCC_ENABLE_DEBUG);
+        MPIDI_common_ucc_config_t ucc_config = {
+            .verbose_level = atoi(MPIR_CVAR_CH4_UCX_UCC_VERBOSITY_LEVEL),
+            .verbose_level_str = MPIR_CVAR_CH4_UCX_UCC_VERBOSITY_LEVEL,
+            .debug_flag = MPIR_CVAR_CH4_UCX_UCC_ENABLE_DEBUG,
+            .relaxed_flag = MPIR_CVAR_CH4_UCX_UCC_ENABLE_RELAXED
+        };
+        MPIDI_common_ucc_enable(&ucc_config);
     }
 #endif
 
