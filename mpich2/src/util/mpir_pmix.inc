@@ -342,6 +342,41 @@ static int pmix_barrier_local(void)
     goto fn_exit;
 }
 
+static int pmix_barrier_group(int *group, int count, int collect_data)
+{
+    int mpi_errno = MPI_SUCCESS;
+    int pmi_errno;
+
+    pmix_proc_t *procs = NULL;
+    PMIX_PROC_CREATE(procs, count);
+    for (int i = 0; i < count; i++) {
+        PMIX_LOAD_PROCID(&(procs[i]), pmix_proc.nspace, group[i]);
+    }
+
+    pmix_info_t *info = NULL;
+    size_t ninfo = 0;
+    if (collect_data) {
+        int flag = 1;
+        ninfo = 1;
+        PMIX_INFO_CREATE(info, ninfo);
+        PMIx_Info_load(info, PMIX_COLLECT_DATA, &flag, PMIX_BOOL);
+    }
+
+    pmi_errno = PMIx_Fence(procs, count, info, ninfo);
+    MPIR_ERR_CHKANDJUMP1(pmi_errno != PMIX_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**pmix_fence",
+                         "**pmix_fence %d", pmi_errno);
+
+    if (ninfo > 0) {
+        PMIX_INFO_FREE(info, 1);
+    }
+    PMIX_PROC_FREE(procs, count);
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 static int pmix_optimized_put(const char *key, const char *val, int is_local)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -1375,6 +1410,11 @@ static int pmix_barrier_only(void)
 }
 
 static int pmix_barrier_local(void)
+{
+    return MPI_ERR_INTERN;
+}
+
+static int pmix_barrier_group(int *group, int count, int collect_data)
 {
     return MPI_ERR_INTERN;
 }

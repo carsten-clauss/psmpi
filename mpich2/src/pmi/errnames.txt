@@ -47,6 +47,8 @@
 **pmi_version_auto_ambiguous: Auto-detection of PMI version failed. Found both env vars PMI_SIZE and PMIX_NAMESPACE. There is likely something wrong with the runtime environment! Aborting.
 **pmi_version_auto_not_supported: Runtime environment uses unsupported PMI version. Aborting.
 **pmi_version_auto_not_supported %s: Runtime environment uses unsupported PMI version %s. Aborting.
+**pmi_unsupported: PMI1 does not support this method
+**pmi_unsupported %s: PMI1 does not support %s
 #
 # pmi2
 #
@@ -93,6 +95,8 @@
 **pmi_port %s: Unable to decide hostport from \"%s\"
 **pmi2_info_getjobattr: PMI2_Info_GetJobAttr failed
 **pmi2_info_getjobattr %d: PMI2_Info_GetJobAttr returned %d
+**pmi2_unsupport: PMI2 does not support this method
+**pmi2_unsupport %s: PMI2 does not support %s
 #
 # PMIx
 #

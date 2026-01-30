@@ -65,6 +65,10 @@ int MPIR_pmi_barrier(void);
 int MPIR_pmi_barrier_only(void);
 /* * barrier over local set. More efficient for PMIx. Same as MPIR_pmi_barrier for PMI1/2. */
 int MPIR_pmi_barrier_local(void);
+/* barrier over a group of processes. Supported with PMIx. */
+int MPIR_pmi_barrier_group(int *group, int count);
+/* barrier over a group of processes without data exchange. Supported with PMIx. */
+int MPIR_pmi_barrier_only_group(int *group, int count);
 /* * put, to global domain */
 int MPIR_pmi_kvs_put(const char *key, const char *val);
 /* * get. src in [0..size-1] or -1 for anysrc. val_size <= MPIR_pmi_max_val_size(). */

@@ -461,6 +461,24 @@ int MPIR_pmi_barrier_local(void)
     return mpi_errno;
 }
 
+int MPIR_pmi_barrier_group(int *group, int count)
+{
+    int mpi_errno = MPI_SUCCESS;
+    SWITCH_PMI(mpi_errno = pmi1_barrier_group(group, count),
+               mpi_errno = pmi2_barrier_group(group, count),
+               mpi_errno = pmix_barrier_group(group, count, 1));
+    return mpi_errno;
+}
+
+int MPIR_pmi_barrier_only_group(int *group, int count)
+{
+    int mpi_errno = MPI_SUCCESS;
+    SWITCH_PMI(mpi_errno = pmi1_barrier_group(group, count),
+               mpi_errno = pmi2_barrier_group(group, count),
+               mpi_errno = pmix_barrier_group(group, count, 0));
+    return mpi_errno;
+}
+
 /* is_local is a hint that we optimize for node local access when we can */
 static int optimized_put(const char *key, const char *val, int is_local)
 {

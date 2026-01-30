@@ -1167,7 +1167,7 @@ MPIDI_PG_t *MPIDI_PG_Destroy(MPIDI_PG_t * pg_ptr)
              * current session. Therefore, we just close the still open connections
              * and free the related VCR without any decreasing of reference counters:
              */
-            if (!MPIDI_Process.env.enable_keep_connections) {
+            if (!MPIDI_Process.env.enable_keep_connections && (pg_ptr->vcr[j]->con != NULL)) {
                 pscom_close_connection(pg_ptr->vcr[j]->con);
             }
             MPL_free(pg_ptr->vcr[j]);
@@ -1227,6 +1227,10 @@ int MPIDI_PSP_PG_init(void)
     MPIDI_PG_t *pg_ptr;
     MPIDI_PSP_topo_level_t *topo_levels = NULL;
 
+    if (MPIDI_Process.my_pg != NULL) {
+        goto fn_exit;
+    }
+
     /* Create and set MPIDI_Process.my_pg including all processes */
     MPIDI_PG_Convert_id(MPIDI_Process.pg_id_name, &pg_id_num);
 
@@ -1246,8 +1250,8 @@ int MPIDI_PSP_PG_init(void)
     MPIR_Assert(pg_ptr == MPIDI_Process.my_pg);
 
     for (grank = 0; grank < pg_size; grank++) {
-        pscom_connection_t *con = MPIDI_Process.grank2con[grank];
-        pg_ptr->vcr[grank] = MPIDI_VC_Create(pg_ptr, grank, con, grank);
+        /* Init connections with NULL, initialized during comm creation in grank2con_set */
+        pg_ptr->vcr[grank] = MPIDI_VC_Create(pg_ptr, grank, NULL, grank);
     }
 
   fn_exit:

@@ -8703,6 +8703,7 @@ mpich2/test/mpi/runtests \
 mpich2/test/mpi/session/Makefile.am \
 mpich2/test/mpi/session/ps-test-minimal \
 mpich2/test/mpi/session/session.c \
+mpich2/test/mpi/session/session_4x4.c \
 mpich2/test/mpi/session/session_bsend.c \
 mpich2/test/mpi/session/session_psets.c \
 mpich2/test/mpi/session/session_self.c \
