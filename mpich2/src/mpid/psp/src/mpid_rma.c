@@ -42,7 +42,7 @@ int is_comm_self_clone(MPIR_Comm * comm_ptr)
 static
 int MPIDI_PSP_check_for_host_local_comm(MPIR_Comm * comm_ptr, int *flag)
 {
-    int i;
+    int i, node_id;
     int *node_ids;
     int mpi_errno = MPI_SUCCESS;
     MPIR_Errflag_t errflag = 0;
@@ -52,9 +52,14 @@ int MPIDI_PSP_check_for_host_local_comm(MPIR_Comm * comm_ptr, int *flag)
     MPIR_CHKLMEM_MALLOC(node_ids, int *, comm_ptr->local_size * sizeof(int), mpi_errno, "node_ids",
                         MPL_MEM_BUFFER);
 
-    mpi_errno =
-        MPIR_Allgather_impl(&MPIDI_Process.smp_node_id, 1, MPI_INT, node_ids, 1, MPI_INT, comm_ptr,
-                            errflag);
+    if (MPIDI_Process.smp_node_id == MPIDI_PSP_NODE_ID_NO_LOCAL) {
+        /* Pretend all ranks live on their own node for debugging purposes. */
+        node_id = comm_ptr->rank;
+    } else {
+        node_id = MPIDI_Process.smp_node_id;
+    }
+
+    mpi_errno = MPIR_Allgather_impl(&node_id, 1, MPI_INT, node_ids, 1, MPI_INT, comm_ptr, errflag);
     if (mpi_errno != MPI_SUCCESS) {
         goto fn_fail;
     }
@@ -62,7 +67,7 @@ int MPIDI_PSP_check_for_host_local_comm(MPIR_Comm * comm_ptr, int *flag)
     *flag = 1;
 
     for (i = 0; i < comm_ptr->local_size; i++) {
-        if (node_ids[i] != MPIDI_Process.smp_node_id) {
+        if (node_ids[i] != node_id) {
             *flag = 0;
             break;
         }

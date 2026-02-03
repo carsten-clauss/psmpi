@@ -78,10 +78,6 @@ ifdef::env-gitlab,env-vscode,env-github[:opt-config-anchor: user-content-optiona
 | Enable/Disable UCC support (default = 0)
 | `--with-ucc[=path]`
 
-| `PSP_SMP_AWARENESS=1`
-| Take locality information into account (default = 1)
-|
-
 | `PSP_SMP_AWARE_COLLOPS=1`
 | Enable/Disable SMP-aware collectives (default = 0)
 | `--enable-msa-awareness`

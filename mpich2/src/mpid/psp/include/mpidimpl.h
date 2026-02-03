@@ -82,6 +82,10 @@ struct MPIDI_PSP_topo_level {
 typedef void MPIDI_PSP_topo_level_t;
 #endif
 
+/* Setting for smp_node_id to pretend all ranks live on their own node (for debugging) */
+#define MPIDI_PSP_NODE_ID_NO_LOCAL -1
+#define MPIDI_PSP_NODE_ID_UNDEFINED -2
+
 #define MPIDI_PSP_INVALID_LPID ((uint64_t)-1)
 
 typedef struct MPIDI_PG MPIDI_PG_t;
@@ -172,7 +176,6 @@ typedef struct MPIDI_Process {
         unsigned enable_collectives;
         unsigned enable_direct_connect;
         unsigned enable_direct_connect_spawn;
-        unsigned enable_smp_awareness;
         unsigned enable_msa_awareness;
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
         unsigned enable_smp_aware_collops;

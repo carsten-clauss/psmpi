@@ -43,7 +43,7 @@ MPIDI_Process_t MPIDI_Process = {
     dinit(next_lpid) 0,
     dinit(my_pg) NULL,
     dinit(shm_attr_key) 0,
-    dinit(smp_node_id) - 1,
+    dinit(smp_node_id) MPIDI_PSP_NODE_ID_UNDEFINED,
     dinit(msa_module_id) - 1,
     dinit(use_world_model) 0,
     dinit(env) {
@@ -53,7 +53,6 @@ MPIDI_Process_t MPIDI_Process = {
                 dinit(enable_collectives) 0,
                 dinit(enable_direct_connect) 0,
                 dinit(enable_direct_connect_spawn) 0,
-                dinit(enable_smp_awareness) 1,
                 dinit(enable_msa_awareness) 0,
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
                 dinit(enable_smp_aware_collops) 0,
@@ -152,11 +151,11 @@ void mpid_env_init(void)
     MPIDI_Process.env.enable_direct_connect_spawn = MPIDI_Process.env.enable_direct_connect;
     pscom_env_get_uint(&MPIDI_Process.env.enable_direct_connect, "PSP_DIRECT_CONNECT_SPAWN");
 
-    /* take SMP-related locality information into account (e.g., for MPI_Win_allocate_shared) */
-    pscom_env_get_uint(&MPIDI_Process.env.enable_smp_awareness, "PSP_SMP_AWARENESS");
-    if (MPIDI_Process.env.enable_smp_awareness) {
-        pscom_env_get_int(&MPIDI_Process.smp_node_id, "PSP_SMP_NODE_ID");
-    }
+    /* Set the node id of this rank
+     * Default: Use pscom's node id (MPIDI_PSP_NODE_ID_UNDEFINED)
+     * For debugging, MPIDI_PSP_NODE_ID_NO_LOCAL can be set to pretend that each
+     * rank lives on its own node. */
+    pscom_env_get_int(&MPIDI_Process.smp_node_id, "PSP_SMP_NODE_ID");
 #ifdef MPID_PSP_MSA_AWARENESS
     /* take MSA-related topology information into account */
     pscom_env_get_uint(&MPIDI_Process.env.enable_msa_awareness, "PSP_MSA_AWARENESS");

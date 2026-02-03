@@ -43,10 +43,6 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    // If SMP-awarenes is disabled, it is quite likely that comm_shmem equals COMM_SELF! Just skip this test then...
-    if (getenv("PSP_SMP_AWARENESS") && (strcmp(getenv("PSP_SMP_AWARENESS"), "0") == 0))
-        goto finalize;
-
     if (_VERBOSE_) {
         if (world_rank == 0) {
             printf("(%d) There are %d ranks with me in COMM_WORLD...\n", world_rank, world_size);
