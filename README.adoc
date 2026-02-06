@@ -16,3 +16,10 @@ include::doc/antora/modules/ROOT/pages/runtime-parameters.adoc[leveloffset=+1]
 include::doc/antora/modules/ROOT/pages/test-suite.adoc[leveloffset=+1]
 
 include::doc/antora/modules/ROOT/pages/contributing.adoc[leveloffset=+1]
+
+== How to cite
+
+Please cite at least one of the following options for references to ParaStation MPI in publications:
+
+* For references to the code base, please cite the https://github.com/ParaStation/psmpi[GitHub repository of ParaStation MPI] authored by ParTec AG, Munich, Germany
+* For any other reference, please cite the White Paper "Modular Supercomputing Architecture: A success story of European R&D" (https://doi.org/10.5281/ZENODO.6508394[DOI: 10.5281/ZENODO.6508394]) published by the European Technology Platform for High Performance Computing (ETP4HPC)
