@@ -6986,6 +6986,7 @@ mpich2/test/mpi/coll/p_scan.c \
 mpich2/test/mpi/coll/p_scatter.c \
 mpich2/test/mpi/coll/p_scatterv.c \
 mpich2/test/mpi/coll/ps-test-minimal \
+mpich2/test/mpi/coll/ps-test-ucc \
 mpich2/test/mpi/coll/red3.c \
 mpich2/test/mpi/coll/red4.c \
 mpich2/test/mpi/coll/red_scat_block.c \
@@ -8394,6 +8395,7 @@ mpich2/test/mpi/parastation/coll/large_msg_coll_scatter.c \
 mpich2/test/mpi/parastation/coll/large_msg_noncontig.c \
 mpich2/test/mpi/parastation/coll/large_msg_typed.c \
 mpich2/test/mpi/parastation/coll/ps-test-minimal \
+mpich2/test/mpi/parastation/coll/ps-test-ucc \
 mpich2/test/mpi/parastation/coll/testlist.in \
 mpich2/test/mpi/parastation/comm/Makefile.am \
 mpich2/test/mpi/parastation/comm/intercomm_anysrc.c \
@@ -8402,6 +8404,14 @@ mpich2/test/mpi/parastation/comm/num_contexts_4k.c \
 mpich2/test/mpi/parastation/comm/ps-test-minimal \
 mpich2/test/mpi/parastation/comm/split_type_integrity.c \
 mpich2/test/mpi/parastation/comm/testlist \
+mpich2/test/mpi/parastation/datatype/Makefile.am \
+mpich2/test/mpi/parastation/datatype/mixed_basic_to_derived.c \
+mpich2/test/mpi/parastation/datatype/mixed_contig_to_derived.c \
+mpich2/test/mpi/parastation/datatype/mixed_datatype_test.h \
+mpich2/test/mpi/parastation/datatype/mixed_derived_to_basic.c \
+mpich2/test/mpi/parastation/datatype/mixed_derived_to_contig.c \
+mpich2/test/mpi/parastation/datatype/ps-test-ucc \
+mpich2/test/mpi/parastation/datatype/testlist \
 mpich2/test/mpi/parastation/info/Makefile.am \
 mpich2/test/mpi/parastation/info/mpix_info_dup_key.c \
 mpich2/test/mpi/parastation/info/mpix_info_get_hex.c \
@@ -8415,6 +8425,7 @@ mpich2/test/mpi/parastation/msa/msa_split_type.c \
 mpich2/test/mpi/parastation/msa/ps-test-minimal \
 mpich2/test/mpi/parastation/msa/testlist \
 mpich2/test/mpi/parastation/ps-test-minimal.in \
+mpich2/test/mpi/parastation/ps-test-ucc \
 mpich2/test/mpi/parastation/rma/Makefile.am \
 mpich2/test/mpi/parastation/rma/acc_pairtype.c \
 mpich2/test/mpi/parastation/rma/acc_vecsum.c \
@@ -8504,6 +8515,7 @@ mpich2/test/mpi/project.txt \
 mpich2/test/mpi/project_cxx.txt \
 mpich2/test/mpi/project_f.txt \
 mpich2/test/mpi/ps-test-minimal.in \
+mpich2/test/mpi/ps-test-ucc \
 mpich2/test/mpi/pt2pt/Makefile.am \
 mpich2/test/mpi/pt2pt/anyall.c \
 mpich2/test/mpi/pt2pt/big_count_status.c \

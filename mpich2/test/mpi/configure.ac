@@ -1763,6 +1763,7 @@ AC_OUTPUT(maint/testmerge \
           parastation/coll/Makefile \
           parastation/coll/testlist \
           parastation/comm/Makefile \
+          parastation/datatype/Makefile \
           parastation/info/Makefile \
           parastation/msa/Makefile \
           parastation/rma/Makefile \

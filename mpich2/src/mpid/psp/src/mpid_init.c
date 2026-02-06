@@ -74,8 +74,9 @@ MPIDI_Process_t MPIDI_Process = {
 #ifdef HAVE_UCC
                 dinit(ucc) {
                             dinit(enabled) 0,
-                            dinit(verbose) 0,
-                            dinit(debug) 0,
+                            dinit(verbose_level_str) NULL,
+                            dinit(debug_flag) 0,
+                            dinit(relaxed_flag) 0,
                             }
                 ,
 #endif
@@ -178,9 +179,10 @@ void mpid_env_init(void)
 #endif
 
 #ifdef HAVE_UCC
-    pscom_env_get_uint(&MPIDI_Process.env.ucc.enabled, "PSP_UCC");
-    pscom_env_get_uint(&MPIDI_Process.env.ucc.verbose, "PSP_UCC_VERBOSE");
-    pscom_env_get_uint(&MPIDI_Process.env.ucc.debug, "PSP_UCC_DEBUG");
+    pscom_env_get_int(&MPIDI_Process.env.ucc.enabled, "PSP_UCC");
+    pscom_env_get_str(&MPIDI_Process.env.ucc.verbose_level_str, "PSP_UCC_VERBOSE");
+    pscom_env_get_int(&MPIDI_Process.env.ucc.debug_flag, "PSP_UCC_DEBUG");
+    pscom_env_get_int(&MPIDI_Process.env.ucc.relaxed_flag, "PSP_UCC_RELAXED_STDCOMPLIANCE");
 #endif
 
 #ifdef MPID_PSP_HISTOGRAM
@@ -365,8 +367,15 @@ int MPID_Init(int requested, int *provided)
 
 #ifdef HAVE_UCC
     if (MPIDI_Process.env.ucc.enabled) {
-        MPIDI_common_ucc_enable(MPIDI_Process.env.ucc.verbose, getenv("PSP_UCC_VERBOSE"),
-                                MPIDI_Process.env.ucc.debug);
+        MPIDI_common_ucc_config_t ucc_config = {
+            .verbose_level_str = MPIDI_Process.env.ucc.verbose_level_str,
+            .verbose_level =
+                MPIDI_Process.env.ucc.verbose_level_str ? atoi(MPIDI_Process.env.
+                                                               ucc.verbose_level_str) : 0,
+            .debug_flag = MPIDI_Process.env.ucc.debug_flag,
+            .relaxed_flag = MPIDI_Process.env.ucc.relaxed_flag
+        };
+        MPIDI_common_ucc_enable(&ucc_config);
     }
 #endif
 

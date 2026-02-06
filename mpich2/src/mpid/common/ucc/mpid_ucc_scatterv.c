@@ -18,7 +18,7 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
                                                    const MPI_Aint sdispls[], MPI_Datatype sdtype,
                                                    void *rbuf, MPI_Aint rcount, MPI_Datatype rdtype,
                                                    int root, MPIR_Comm * comm_ptr,
-                                                   ucc_coll_req_h * req, MPIR_Request * coll_req)
+                                                   MPIDI_common_ucc_req_t * req)
 {
     bool is_inplace = (rbuf == MPI_IN_PLACE);
     int comm_rank = MPIR_Comm_rank(comm_ptr);
@@ -37,6 +37,20 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
         }
     } else {
         ucc_rdt = mpidi_mpi_dtype_to_ucc_dtype(rdtype);
+    }
+
+    if (ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_S(scatterv);
+        ucc_sdt = mpidi_ucc_dytpe_packing_sendv(sbuf, scounts, sdispls, comm_size, sdtype, req);
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(scatterv, ucc_sdt);
+    }
+
+    if (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_R(scatter);
+        ucc_rdt =
+            mpidi_ucc_dytpe_packing_recv_prep(rbuf, rcount, rdtype, 1 /* single recv chunk */ ,
+                                              req);
+        MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(scatter, ucc_rdt);
     }
 
     if ((ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) ||
@@ -60,16 +74,17 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
         .coll_type = UCC_COLL_TYPE_SCATTERV,
         .root = root,
         .src.info_v = {
-                       .buffer = (void *) sbuf,
-                       .counts = (ucc_count_t *) scounts,
-                       .displacements = (ucc_aint_t *) sdispls,
+                       .buffer = req->sbuf_tmp ? req->sbuf_tmp : (void *) sbuf,
+                       .counts = (ucc_count_t *) (req->scounts_tmp ? req->scounts_tmp : scounts),
+                       .displacements =
+                       (ucc_aint_t *) (req->sdispls_tmp ? req->sdispls_tmp : sdispls),
                        .datatype = ucc_sdt,
                        .mem_type = UCC_MEMORY_TYPE_UNKNOWN,
                        }
         ,
         .dst.info = {
-                     .buffer = rbuf,
-                     .count = rcount,
+                     .buffer = req->rbuf_tmp ? req->rbuf_tmp : rbuf,
+                     .count = req->rcounts_tmp ? req->rcounts_tmp[0] : rcount,
                      .datatype = ucc_rdt,
                      .mem_type = UCC_MEMORY_TYPE_UNKNOWN,
                      }
@@ -99,7 +114,8 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
                                                  mpidi_ucc_dtype_to_str(ucc_rdt), root);
     }
 
-    MPIDI_COMMON_UCC_REQ_INIT(coll_req, req, coll, comm_ptr);
+    MPIDI_COMMON_UCC_REQ_INIT(req, coll, comm_ptr);
+
     return UCC_OK;
   fallback:
     return UCC_ERR_NOT_SUPPORTED;
@@ -110,22 +126,16 @@ int MPIDI_common_ucc_scatterv(const void *sbuf, const MPI_Aint scounts[], const 
                               int root, MPIR_Comm * comm_ptr)
 {
     int mpidi_ucc_err = MPIDI_COMMON_UCC_RETVAL_SUCCESS;
-    ucc_coll_req_h req;
-    MPIDI_COMMON_UCC_CHECK_ENABLED(comm_ptr, scatterv);
-    MPIDI_COMMON_UCC_VERBOSE_COLLOP_TRY_TO_RUN(scatterv);
-    MPIDI_COMMON_UCC_CALL_AND_CHECK(mpidi_ucc_scatterv_init
-                                    (sbuf, scounts, sdispls, sdtype, rbuf,
-                                     rcount, rdtype, root, comm_ptr, &req, NULL));
-    MPIDI_COMMON_UCC_POST_AND_CHECK(req);
-    MPIDI_COMMON_UCC_WAIT_AND_CHECK(req);
-    MPIDI_COMMON_UCC_VERBOSE_COLLOP_DONE_SUCCESS(scatterv);
-    return MPIDI_COMMON_UCC_RETVAL_SUCCESS;
-  fallback:
-    MPIDI_COMMON_UCC_VERBOSE_COLLOP_FALLBACK(scatterv);
-    return MPIDI_COMMON_UCC_RETVAL_FALLBACK;
-  disabled:
-    MPIDI_COMMON_UCC_VERBOSE_COLLOP_DISABLED(scatterv);
-    goto fallback;
+    MPIDI_common_ucc_req_t req = { 0 };
+
+    MPIDI_COMMON_UCC_WRAPPER_ENTER(scatterv);
+
+    MPIDI_COMMON_UCC_WRAPPER_EXECUTE(scatterv, sbuf, scounts, sdispls, sdtype, rbuf, rcount, rdtype,
+                                     root, comm_ptr, &req);
+
+    mpidi_ucc_dytpe_packing_recv_done(rbuf, rcount, rdtype, 1 /* single recv chunk */ , &req);
+
+    MPIDI_COMMON_UCC_WRAPPER_EXIT(scatterv);
 }
 
 #endif /* MPIDI_DEV_IMPLEMENTS_COMM_DECL_UCC */
