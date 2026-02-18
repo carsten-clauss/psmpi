@@ -72,10 +72,20 @@ int MPIDI_PSP_Progress_wait(MPID_Progress_state * state)
 
 #ifdef HAVE_UCC
     MPIDI_common_ucc_progress(&made_progress);
-    /* With UCC enabled, it is _not_ safe to run into a blocking pscom_wait_any()! */
-    /* Therefore, we just call pscom_test_any() and leave then...  */
-    pscom_test_any();
-    return MPI_SUCCESS;
+    if (MPIDI_common_ucc_is_initialized()) {
+        /* With UCC enabled and initialized, it is _not_ safe to run into the blocking
+         * pscom_wait_any(). Therefore, we just call pscom_test_any() instead in this
+         * case, yield progress to other threads (if threaded), and leave afterwards. */
+        pscom_test_any();
+        /* Since MPIDI_PSP_Progress_wait() is normally blocking, it must be yielded to
+         * other threads in the threaded case (see the MPID_PSP_LOCKFREE_CALL() below).
+         * However, even in the non-blocking UCC case (i.e., this code branch here), we
+         * must ensure that it is yielded to other threads, as otherwise livelocks may
+         * occur (i.e., MPIDI_PSP_Progress_wait() is called repeatedly, but no progress
+         * is made due to cyclic dependencies with other threads involved). */
+        MPID_PSP_LOCKFREE_YIELD();
+        return MPI_SUCCESS;
+    }
 #endif
 
     if (!made_progress) {

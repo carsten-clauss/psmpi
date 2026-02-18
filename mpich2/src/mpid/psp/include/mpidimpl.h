@@ -169,6 +169,7 @@ typedef struct MPIDI_Process {
     int smp_node_id;
     int msa_module_id;
     uint8_t use_world_model;
+    uint8_t use_threaded_mode;
 
     struct {
         unsigned debug_level;
@@ -416,11 +417,15 @@ static inline int MPIDI_PSP_env_get_int(const char *env_name, int _default)
 
 #ifndef MPICH_IS_THREADED
 #define MPID_PSP_LOCKFREE_CALL(code) code;
+#define MPID_PSP_LOCKFREE_YIELD(...)
 #else
 #define MPID_PSP_LOCKFREE_CALL(code) do {				\
 	MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);	\
 	code;								\
 	MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);	\
+} while (0);
+#define MPID_PSP_LOCKFREE_YIELD(...) do {                               \
+        MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); \
 } while (0);
 #endif
 

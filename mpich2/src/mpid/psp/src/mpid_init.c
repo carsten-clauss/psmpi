@@ -46,6 +46,7 @@ MPIDI_Process_t MPIDI_Process = {
     dinit(smp_node_id) MPIDI_PSP_NODE_ID_UNDEFINED,
     dinit(msa_module_id) - 1,
     dinit(use_world_model) 0,
+    dinit(use_threaded_mode) 0,
     dinit(env) {
                 dinit(debug_level) 0,
                 dinit(debug_version) 0,
@@ -323,12 +324,14 @@ int MPID_Init(int requested, int *provided)
            requested < MPI_THREAD_MULTIPLE
 #endif
 ) {
+        MPIDI_Process.use_threaded_mode = 0;
         rc = pscom_init(PSCOM_VERSION);
         if (rc != PSCOM_SUCCESS) {
             fprintf(stderr, "pscom_init(0x%04x) failed : %s\n", PSCOM_VERSION, pscom_err_str(rc));
             exit(1);
         }
     } else {
+        MPIDI_Process.use_threaded_mode = 1;
         rc = pscom_init_thread(PSCOM_VERSION);
         if (rc != PSCOM_SUCCESS) {
             fprintf(stderr, "pscom_init_thread(0x%04x) failed : %s\n",
@@ -372,7 +375,8 @@ int MPID_Init(int requested, int *provided)
                 MPIDI_Process.env.ucc.verbose_level_str ? atoi(MPIDI_Process.env.
                                                                ucc.verbose_level_str) : 0,
             .debug_flag = MPIDI_Process.env.ucc.debug_flag,
-            .relaxed_flag = MPIDI_Process.env.ucc.relaxed_flag
+            .relaxed_flag = MPIDI_Process.env.ucc.relaxed_flag,
+            .threaded_flag = MPIDI_Process.use_threaded_mode
         };
         MPIDI_common_ucc_enable(&ucc_config);
     }
