@@ -1,0 +1,6 @@
+# Enable the use of UCC (if available) and turn on the reporting of errors
+# (Fallbacks caused by UCC initialization errors are now reported.)
+SCRIPTDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source ${SCRIPTDIR}/../ucc.testconf
+export PSP_UCC_VERBOSE=1
+export MPIR_CVAR_CH4_UCC_VERBOSITY_LEVEL=1
