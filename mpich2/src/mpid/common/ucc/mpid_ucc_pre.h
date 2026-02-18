@@ -24,6 +24,7 @@ typedef struct {
     int relaxed_flag;           /* flag for activating more aggressive but unsafe optimizations (by default,
                                  * the UCC wrappers attempt to be as MPI-compliant as possible, but certain
                                  * optimizations might promise better performance at the cost of compliance) */
+    int threaded_flag;          /* flag for requesting thread safety from the UCC library and the wrappers */
 } MPIDI_common_ucc_config_t;
 
 int MPIDI_common_ucc_enable(MPIDI_common_ucc_config_t * config);
