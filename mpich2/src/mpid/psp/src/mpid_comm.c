@@ -26,13 +26,12 @@ int MPID_PSP_split_type(MPIR_Comm * comm_ptr, int split_type, int key,
     if (split_type == MPI_COMM_TYPE_SHARED) {
         int color;
 
-        if (!MPIDI_Process.env.enable_smp_awareness) {
-            // pretend that all ranks live on their own nodes:
+        if (MPIDI_Process.smp_node_id == MPIDI_PSP_NODE_ID_NO_LOCAL) {
+            /* Pretend all ranks live on their own node for debugging purposes. */
             color = comm_ptr->rank;
         } else {
             color = MPIDI_Process.smp_node_id;
         }
-
         mpi_errno = MPIR_Comm_split_impl(comm_ptr, color, key, newcomm_ptr);
 
     } else if (split_type == MPIX_COMM_TYPE_MODULE) {
@@ -377,13 +376,6 @@ int MPIDI_PSP_update_topo_level(MPIR_Comm * comm)
         MPIR_ERR_CHECK(mpi_errno);
     }
 
-    if (MPIDI_Process.env.enable_smp_awareness && MPIDI_Process.env.enable_smp_aware_collops) {
-        mpi_errno = MPIDI_PSP_update_badge_table(MPIDI_PSP_TOPO_LEVEL__NODES,
-                                                 MPIDI_Process.smp_node_id,
-                                                 comm, 1 /*normalize */ , false);
-        MPIR_ERR_CHECK(mpi_errno);
-    }
-
   fn_exit:
     return mpi_errno;
   fn_fail:
@@ -414,9 +406,7 @@ int MPID_Get_max_badge(MPIR_Comm * comm, int *max_badge_p)
     MPIDI_PSP_topo_level_t *tl = MPIDI_Process.my_pg->topo_levels;
 
     if (tl == NULL) {
-        if ((MPIDI_Process.env.enable_msa_awareness && MPIDI_Process.env.enable_msa_aware_collops)
-            || (MPIDI_Process.env.enable_smp_awareness &&
-                MPIDI_Process.env.enable_smp_aware_collops)) {
+        if ((MPIDI_Process.env.enable_msa_awareness && MPIDI_Process.env.enable_msa_aware_collops)) {
             *max_badge_p = 0;
             return MPI_ERR_OTHER;
         } else {
@@ -463,26 +453,14 @@ int MPIDI_PSP_topo_init(MPIDI_PSP_topo_level_t ** topo_levels)
     }
 #endif
 
-    if (MPIDI_Process.env.enable_smp_awareness) {
-
-        if (MPIDI_Process.smp_node_id < 0) {
-            /* If no smp_node_id is set explicitly, use the pscom's node_id for this:
-             * (...which is an int and might be negative. However, since we know that it actually
-             * corresponds to the IPv4 address of the node, it is safe to force the most significant
-             * bit to be unset so that it is positive and can thus also be used as a split color.)
-             */
-            MPIDI_Process.smp_node_id =
-                (int) ((unsigned) MPIDI_Process.socket->
-                       local_con_info.node_id & (unsigned) 0x7fffffff);
-        }
-#ifdef MPID_PSP_MSA_AWARE_COLLOPS
-        if (MPIDI_Process.env.enable_smp_aware_collops) {
-            mpi_errno =
-                MPIDI_PSP_init_topo_level(MPIDI_PSP_TOPO_LEVEL__NODES, 0 /*badges_are_global */ ,
-                                          topo_levels);
-            MPIR_ERR_CHECK(mpi_errno);
-        }
-#endif
+    if (MPIDI_Process.smp_node_id <= MPIDI_PSP_NODE_ID_UNDEFINED) {
+        /* If no smp_node_id is set explicitly, use the pscom's node_id for this:
+         * (...which is an int and might be negative. However, since we know that it actually
+         * corresponds to the IPv4 address of the node, it is safe to force the most significant
+         * bit to be unset so that it is positive and can thus also be used as a split color.)
+         */
+        MPIDI_Process.smp_node_id =
+            (int) ((unsigned) MPIDI_Process.socket->local_con_info.node_id & (unsigned) 0x7fffffff);
     }
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
   fn_exit:
@@ -498,22 +476,6 @@ int MPID_Get_node_id(MPIR_Comm * comm, int rank, int *id_p)
 {
     uint64_t lpid = comm->vcr[rank]->lpid;
 
-#ifdef MPID_PSP_MSA_AWARE_COLLOPS
-    /* In the case of enabled MSA awareness, we can use the badge table at the nodes level.
-     * If a badge at this level cannot be found, we fall back to MPICH's node_map table...
-     */
-    MPIDI_PSP_topo_level_t *level;
-    if (MPIDI_PSP_check_pg_for_level(MPIDI_PSP_TOPO_LEVEL__NODES, MPIDI_Process.my_pg, &level)) {
-        /* A badge table on node level exists. Get badge by comm rank: */
-        *id_p = MPIDI_PSP_get_badge_by_level_and_comm_rank(comm, level, rank);
-        /* The badge we get here is less than or equal to the maximum node-level badge
-         * plus 1, where the latter corresponds to the "unknown badge" wildcard.
-         * (See also the definition of MPIDI_PSP_TOPO_BADGE__UNKNOWN.)
-         */
-        MPIR_Assert(*id_p <= MPIDI_PSP_get_max_badge_by_level(level) + 1);
-        return MPI_SUCCESS;
-    }
-#endif
     if (comm->vcr[rank]->pg == MPIDI_Process.my_pg) {
         // rank is within the own MPI_COMM_WORLD -> use map
         *id_p = MPIR_Process.node_map[lpid];

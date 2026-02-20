@@ -77,10 +77,15 @@ struct MPIDI_PSP_topo_level {
 #define MPIDI_PSP_TOPO_BADGE__UNKNOWN(level) (MPIDI_PSP_get_max_badge_by_level(level) + 1)
 #define MPIDI_PSP_TOPO_BADGE__NULL -1
 #define MPIDI_PSP_TOPO_LEVEL__MODULES 4096
-#define MPIDI_PSP_TOPO_LEVEL__NODES   1024
+/* #define MPIDI_PSP_TOPO_LEVEL__NODES   1024
+ * Removed because MPIR layer provides SMP awareness for collectives */
 #else
 typedef void MPIDI_PSP_topo_level_t;
 #endif
+
+/* Setting for smp_node_id to pretend all ranks live on their own node (for debugging) */
+#define MPIDI_PSP_NODE_ID_NO_LOCAL -1
+#define MPIDI_PSP_NODE_ID_UNDEFINED -2
 
 #define MPIDI_PSP_INVALID_LPID ((uint64_t)-1)
 
@@ -172,10 +177,8 @@ typedef struct MPIDI_Process {
         unsigned enable_collectives;
         unsigned enable_direct_connect;
         unsigned enable_direct_connect_spawn;
-        unsigned enable_smp_awareness;
         unsigned enable_msa_awareness;
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
-        unsigned enable_smp_aware_collops;
         unsigned enable_msa_aware_collops;
 #endif
 #ifdef MPID_PSP_HISTOGRAM

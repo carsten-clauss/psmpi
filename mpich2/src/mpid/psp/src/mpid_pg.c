@@ -1238,9 +1238,8 @@ int MPIDI_PSP_PG_init(void)
     mpi_errno = MPIDI_PSP_topo_init(&topo_levels);
     MPIR_ERR_CHECK(mpi_errno);
 #ifdef MPID_PSP_MSA_AWARE_COLLOPS
-    if ((MPIDI_Process.env.enable_msa_awareness && MPIDI_Process.env.enable_msa_aware_collops) ||
-        (MPIDI_Process.env.enable_smp_awareness && MPIDI_Process.env.enable_smp_aware_collops)) {
-        /* If MSA and/or SMP aware collops are enabled topo_levels MUST be initialized at this point */
+    if (MPIDI_Process.env.enable_msa_awareness && MPIDI_Process.env.enable_msa_aware_collops) {
+        /* If MSA aware collops are enabled topo_levels MUST be initialized at this point */
         MPIR_Assert(topo_levels != NULL);
     }
 #endif
