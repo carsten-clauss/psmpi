@@ -811,12 +811,19 @@ int MPIR_Comm_free_impl(MPIR_Comm * comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
+    if (comm_ptr->info_ptr) {
+        mpi_errno = MPIR_Info_free_impl(comm_ptr->info_ptr);
+        MPIR_ERR_CHECK(mpi_errno);
+        comm_ptr->info_ptr = NULL;
+    }
+
     mpi_errno = MPIR_Comm_release(comm_ptr);
     MPIR_ERR_CHECK(mpi_errno);
 
     if (comm_ptr == MPIR_Process.comm_parent) {
         MPIR_Process.comm_parent = NULL;
     }
+
   fn_exit:
     return mpi_errno;
   fn_fail:
@@ -967,6 +974,17 @@ int MPIR_Comm_set_info_impl(MPIR_Comm * comm_ptr, MPIR_Info * info_ptr)
     mpi_errno = MPII_Comm_set_hints(comm_ptr, info_ptr, false);
     if (mpi_errno != MPI_SUCCESS)
         goto fn_fail;
+
+    if (comm_ptr && info_ptr) {
+        if (comm_ptr->info_ptr) {
+            /* remove the old info object instance */
+            mpi_errno = MPIR_Info_free_impl(comm_ptr->info_ptr);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+        /* clone and attach the passed info object for later use */
+        mpi_errno = MPIR_Info_dup_impl(info_ptr, &comm_ptr->info_ptr);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
 
   fn_exit:
     MPIR_FUNC_EXIT;

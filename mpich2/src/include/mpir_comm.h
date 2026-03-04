@@ -283,6 +283,7 @@ struct MPIR_Comm {
      MPID_DEV_COMM_DECL
 #endif
      MPIR_Session * session_ptr;        /* Pointer to MPI session to which the communicator belongs */
+    MPIR_Info *info_ptr;        /* Pointer to a clone of the MPI info object passed via MPI_Comm_set_info() */
 };
 
 #define MPIR_is_self_comm(comm) \

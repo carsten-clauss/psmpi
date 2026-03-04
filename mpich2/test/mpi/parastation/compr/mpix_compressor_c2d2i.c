@@ -151,6 +151,11 @@ int main(int argc, char *argv[])
     MPI_Info_set(info, "compressor", "darexa-f");
     MPI_Info_set(info, "compressor_plugin", "libmpix_compressor_d2i.so");
 
+#ifdef WITH_INFO_VIA_COMM
+    MPI_Comm_set_info(MPI_COMM_WORLD, info);
+    MPI_Info_free(&info);
+#endif
+
     if (rank == 0) {
 
         for (int j = 0; j < total_count; j++) {
@@ -192,7 +197,9 @@ int main(int argc, char *argv[])
 
     MPI_Request_free(&request);
 
-    MPI_Info_free(&info);
+    if (info != MPI_INFO_NULL) {
+        MPI_Info_free(&info);
+    }
 
     MPI_Finalize();
 

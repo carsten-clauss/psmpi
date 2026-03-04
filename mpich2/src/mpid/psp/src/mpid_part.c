@@ -628,9 +628,10 @@ static
 int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
 {
     int mpi_errno = MPI_SUCCESS;
+    struct MPID_DEV_Request_partitioned *preq = &req->dev.kind.partitioned;
 
     if (!info) {
-        return MPI_SUCCESS;
+        goto fn_exit;
     }
 
     /* Check if the use of a payload compressor is requested. */
@@ -638,9 +639,8 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
     char info_compressor_name[MPI_MAX_INFO_VAL + 1];
     MPIR_Info_get_impl(info, compressor_info_key, MPI_MAX_INFO_VAL, info_compressor_name,
                        &info_flag);
-    if (info_flag) {
-
-        struct MPID_DEV_Request_partitioned *preq = &req->dev.kind.partitioned;
+    /* Requested and not already considered? */
+    if (info_flag && !preq->compr_req) {
 
         if (preq->part_per_req != 1) {
             /* For this prototype implementation, we only support
@@ -816,7 +816,11 @@ int MPID_PSP_part_init_common(const void *buf, int partitions, MPI_Count count,
     /* compute and save initial settings for partitioned communication */
     MPID_part_distribute_partitions_to_requests(req);
 
+    /* First check for an explicitly given info object, ... */
     mpi_errno = MPIDI_PSP_part_check_info(info, req);
+    MPIR_ERR_CHECK(mpi_errno);
+    /* ...then check for an info object attached to comm. */
+    mpi_errno = MPIDI_PSP_part_check_info(comm->info_ptr, req);
     MPIR_ERR_CHECK(mpi_errno);
 
     *request = req;

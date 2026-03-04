@@ -328,6 +328,10 @@ int MPII_Comm_init(MPIR_Comm * comm_p)
     /* Initialize the session_ptr to NULL; for non-session-related communicators it will remain NULL */
     comm_p->session_ptr = NULL;
 
+    /* Initialize the info_ptr to NULL; a clone of the info object passed via MPI_Comm_set_info() can
+     * later be stored here */
+    comm_p->info_ptr = NULL;
+
     comm_p->committed = 0;
 
     /* Fields not set include context_id, remote and local size, and
@@ -1191,6 +1195,13 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
         /* Cleanup collectives-specific infrastructure */
         mpi_errno = MPII_Coll_comm_cleanup(comm_ptr);
         MPIR_ERR_CHECK(mpi_errno);
+
+        /* Remove an attached info object (if exists) */
+        if (comm_ptr->info_ptr) {
+            mpi_errno = MPIR_Info_free_impl(comm_ptr->info_ptr);
+            MPIR_ERR_CHECK(mpi_errno);
+            comm_ptr->info_ptr = NULL;
+        }
 
         /* Notify the device that the communicator is about to be
          * destroyed */
