@@ -38,11 +38,27 @@ mpix_compressor_plg_c2i_LDADD = libmpix_compressor_c2i.la
 mpix_compressor_plg_c2d2i_SOURCES = mpix_compressor_plg.c
 mpix_compressor_plg_c2d2i_LDADD = libmpix_compressor_c2d2i.la
 
+mpix_compressor_nop_info_comm_SOURCES = mpix_compressor_nop.c
+mpix_compressor_nop_info_comm_CPPFLAGS = $(AM_CPPFLAGS) -DWITH_INFO_VIA_COMM
+
+mpix_compressor_d2i_info_comm_SOURCES = mpix_compressor_d2i.c
+mpix_compressor_d2i_info_comm_CPPFLAGS = $(AM_CPPFLAGS) -DWITH_INFO_VIA_COMM
+
+mpix_compressor_c2i_info_comm_SOURCES = mpix_compressor_c2i.c
+mpix_compressor_c2i_info_comm_CPPFLAGS = $(AM_CPPFLAGS) -DWITH_INFO_VIA_COMM
+
+mpix_compressor_c2d2i_info_comm_SOURCES = mpix_compressor_c2d2i.c
+mpix_compressor_c2d2i_info_comm_CPPFLAGS = $(AM_CPPFLAGS) -DWITH_INFO_VIA_COMM
+
 noinst_PROGRAMS = \
     mpix_compressor_nop \
     mpix_compressor_d2i \
     mpix_compressor_c2i \
     mpix_compressor_c2d2i \
+    mpix_compressor_nop_info_comm \
+    mpix_compressor_d2i_info_comm \
+    mpix_compressor_c2i_info_comm \
+    mpix_compressor_c2d2i_info_comm \
     mpix_compressor_plg_nop \
     mpix_compressor_plg_d2i \
     mpix_compressor_plg_c2i \
