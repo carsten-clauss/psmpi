@@ -612,6 +612,23 @@ def dump_f08_wrappers_f(func, is_large):
             uses['c_associated'] = 1
             uses['c_null_funptr'] = 1
             uses[FN_NULL] = 1
+        elif RE.match(r'mpix_register_compressor', func['name'], re.IGNORECASE):
+            FN_NULL=""
+            if RE.match(r'compressor_(inflate|deflate)_fn', p['name']):
+                FN_NULL="MPIX_COMPRESSOR_CONVERSION_FN_NULL"
+            elif RE.match(r'compressor_req_init_fn', p['name']):
+                FN_NULL="MPIX_COMPRESSOR_REQ_INIT_FN_NULL"
+            elif RE.match(r'compressor_req_free_fn', p['name']):
+                FN_NULL="MPIX_COMPRESSOR_REQ_FREE_FN_NULL"
+            elif RE.match(r'compressor_deregister_fn', p['name']):
+                FN_NULL="MPIX_COMPRESSOR_DEREGISTER_FN_NULL"
+            if FN_NULL:
+                convert_list_pre.append("IF (c_associated(%s_c, c_funloc(%s))) then" % (p['name'], FN_NULL))
+                convert_list_pre.append("    %s_c = c_null_funptr" % p['name'])
+                convert_list_pre.append("END IF")
+                uses['c_associated'] = 1
+                uses['c_null_funptr'] = 1
+                uses[FN_NULL] = 1
         arg = "%s_c" % p['name']
         return (arg, arg)
 
@@ -971,6 +988,8 @@ def dump_F_uses(uses):
             mpi_f08_list_3.append(a)
         elif re.match(r'MPI_[A-Z_]+$', a):
             mpi_f08_list_2.append(a)
+        elif re.match(r'MPIX_\w+_(function|FN|FN_NULL)(_c)?$', a, re.IGNORECASE):
+            mpi_f08_list_4.append(a)
         elif re.match(r'MPIX?_\w+', a):
             mpi_f08_list_1.append(a)
         elif re.match(r'assignment', a):

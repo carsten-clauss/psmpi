@@ -482,6 +482,8 @@ int MPII_Finalize(MPIR_Session * session_ptr)
     MPL_free(MPIR_Process.memory_alloc_kinds);
     MPIR_Process.memory_alloc_kinds = NULL;
 
+    MPIR_Compressor_deregister_all();
+
     /* All memory should be freed at this point */
     MPII_finalize_memory_tracing();
 

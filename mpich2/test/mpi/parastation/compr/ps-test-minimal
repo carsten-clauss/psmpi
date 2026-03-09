@@ -1,0 +1,4 @@
+mpix_compressor_nop 2
+mpix_compressor_d2i 2
+mpix_compressor_c2i 2
+mpix_compressor_c2d2i 2

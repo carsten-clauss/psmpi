@@ -17,6 +17,10 @@ public :: MPI_WIN_DUP_FN
 public :: MPI_WIN_NULL_COPY_FN
 public :: MPI_WIN_NULL_DELETE_FN
 public :: MPI_CONVERSION_FN_NULL
+public :: MPIX_COMPRESSOR_CONVERSION_FN_NULL
+public :: MPIX_COMPRESSOR_REQ_INIT_FN_NULL
+public :: MPIX_COMPRESSOR_REQ_FREE_FN_NULL
+public :: MPIX_COMPRESSOR_DEREGISTER_FN_NULL
 
 abstract interface
 
@@ -190,6 +194,53 @@ subroutine MPI_Datarep_conversion_function_c(userbuf, datatype, count, &
     integer(kind=MPI_ADDRESS_KIND) :: extra_state
 end subroutine
 
+subroutine MPIX_Compressor_conversion_function(buf, partition, count, datatype, &
+       temp_buf, size, extra_req_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Datatype
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND, MPI_COUNT_KIND
+    implicit none
+    type(c_ptr), value :: buf, temp_buf
+    type(MPI_Datatype) :: datatype
+    integer :: ierror
+    integer :: partition
+    integer(kind=MPI_COUNT_KIND) :: count
+    integer(kind=MPI_ADDRESS_KIND) :: size
+    integer(kind=MPI_ADDRESS_KIND) :: extra_req_state
+end subroutine
+
+subroutine MPIX_Compressor_req_init_function(buf, partitions, count, datatype, &
+       temp_buf, size, extra_state, extra_req_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Datatype
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND, MPI_COUNT_KIND
+    implicit none
+    type(c_ptr), value :: buf, temp_buf
+    integer(kind=MPI_ADDRESS_KIND) :: datatype
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: partitions
+    integer(kind=MPI_ADDRESS_KIND) :: count
+    integer(kind=MPI_ADDRESS_KIND) :: size
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+    integer(kind=MPI_ADDRESS_KIND) :: extra_req_state
+end subroutine
+
+subroutine MPIX_Compressor_req_free_function(extra_req_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_req_state
+end subroutine
+
+subroutine MPIX_Compressor_deregister_function(extra_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+end subroutine
+
 end interface
 
 contains
@@ -344,6 +395,52 @@ subroutine MPI_CONVERSION_FN_NULL_C(userbuf, datatype, count, &
     integer(kind=MPI_OFFSET_KIND) :: position
     integer(kind=MPI_ADDRESS_KIND) :: extra_state
     ! Do nothing
+end subroutine
+subroutine MPIX_COMPRESSOR_CONVERSION_FN_NULL(buf, partition, count, datatype, &
+       temp_buf, size, extra_req_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Datatype
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND, MPI_COUNT_KIND
+    implicit none
+    type(c_ptr), value :: buf, temp_buf
+    type(MPI_Datatype) :: datatype
+    integer :: ierror
+    integer :: partition
+    integer(kind=MPI_COUNT_KIND) :: count
+    integer(kind=MPI_ADDRESS_KIND) :: size
+    integer(kind=MPI_ADDRESS_KIND) :: extra_req_state
+end subroutine
+
+subroutine MPIX_COMPRESSOR_REQ_INIT_FN_NULL(buf, partitions, count, datatype, &
+       temp_buf, size, extra_state, extra_req_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Datatype
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND, MPI_COUNT_KIND
+    implicit none
+    type(c_ptr), value :: buf, temp_buf
+    integer(kind=MPI_ADDRESS_KIND) :: datatype
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: partitions
+    integer(kind=MPI_ADDRESS_KIND) :: count
+    integer(kind=MPI_ADDRESS_KIND) :: size
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+    integer(kind=MPI_ADDRESS_KIND) :: extra_req_state
+end subroutine
+
+subroutine MPIX_COMPRESSOR_REQ_FREE_FN_NULL(extra_req_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_req_state
+end subroutine
+
+subroutine MPIX_COMPRESSOR_DEREGISTER_FN_NULL(extra_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
 end subroutine
 
 end module mpi_f08_callbacks
