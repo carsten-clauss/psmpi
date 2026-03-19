@@ -19,6 +19,9 @@
 
 MPIDI_common_ucc_priv_t MPIDI_common_ucc_priv = { 0 };
 
+const int *const MPIDI_common_ucc_priv_ucc_enabled = &MPIDI_common_ucc_priv.ucc_enabled;
+const int *const MPIDI_common_ucc_priv_ucc_initialized = &MPIDI_common_ucc_priv.ucc_initialized;
+
 #define MPIDI_COMMON_UCC_VERBOSE_STRING(STRING) #STRING,
 const char *MPIDI_COMMON_UCC_VERBOSE_LEVEL_TO_STRING[] = {
     MPIDI_COMMON_UCC_VERBOSE_LEVELS(MPIDI_COMMON_UCC_VERBOSE_STRING)
@@ -99,6 +102,12 @@ int MPIDI_common_ucc_enable(MPIDI_common_ucc_config_t * config)
             MPIDI_common_ucc_priv.relaxed_flag = 1;
             /* keep these flags separated for more fine-grained optimizations in the future */
             MPIDI_common_ucc_priv.dtype_packing_disabled = 1;
+        }
+
+        if (config->threaded_flag) {
+            MPIDI_common_ucc_priv.thread_mode = UCC_THREAD_MULTIPLE;
+        } else {
+            MPIDI_common_ucc_priv.thread_mode = UCC_THREAD_SINGLE;
         }
     }
 
@@ -219,8 +228,12 @@ static int mpidi_ucc_setup_lib(void)
     lib_params_ptr = &lib_params;
 
 #ifdef MPICH_IS_THREADED
+    /* MPIR_ThreadInfo.isThreaded may not be finally set at this point. To be on the safe
+     * side, we opt for UCC_THREAD_MULTIPLE here as soon as even one of the two variables
+     * (MPIR_ThreadInfo.isThreaded or MPIDI_common_ucc_priv.thread_mode) indicates this. */
     lib_params_ptr->thread_mode =
-        MPIR_ThreadInfo.isThreaded ? UCC_THREAD_MULTIPLE : UCC_THREAD_SINGLE;
+        MPIR_ThreadInfo.isThreaded ? UCC_THREAD_MULTIPLE : MPIDI_common_ucc_priv.thread_mode;
+    MPIDI_common_ucc_priv.thread_mode = lib_params_ptr->thread_mode;
     lib_params_ptr->mask = UCC_LIB_PARAM_FIELD_THREAD_MODE;
 #else
     lib_params_ptr->mask = 0;

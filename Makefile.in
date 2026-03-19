@@ -80,7 +80,7 @@ endif
 TESTCONFDIR := $(SRCDIR)/mpich2/test/mpi/parastation/testconf
 TESTCONFSUFF:= .testconf
 ifdef TESTCONF
-TESTCONFIGS := $(shell cd $(TESTCONFDIR) && find . -type f -name "*$(TESTCONFSUFF)" | cut -d"." -f2 | cut -b1 --complement)
+TESTCONFIGS := $(shell cd $(TESTCONFDIR) && find . -type f -name "*$(TESTCONFSUFF)" | cut -d"." -f2 | cut -b1 --complement | sort)
 TESTCONFFILE:= $(TESTCONFDIR)/$(TESTCONF)$(TESTCONFSUFF)
 endif
 

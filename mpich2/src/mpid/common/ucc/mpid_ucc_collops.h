@@ -13,6 +13,14 @@
 
 #include "mpid_ucc.h"
 
+/* If not overwritten by the device, define what to do to
+ * poke for progress in MPIDI_COMMON_UCC_WAIT_AND_CHECK() */
+#ifndef MPIDI_COMMON_UCC_PROGRESS_POKE_DEV
+#define MPIDI_COMMON_UCC_PROGRESS_POKE_DEV(...)                         \
+    MPID_Progress_poke();                                               \
+    MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+#endif
+
 #define MPIDI_COMMON_UCC_VERBOSE_COLLOP_POST_REQ(_collop, _format, ...) \
     MPIDI_COMMON_UCC_VERBOSE(MPIDI_COMMON_UCC_VERBOSE_LEVEL_COLLOP,     \
                              "posting ucc " #_collop " req | " _format, \
@@ -94,7 +102,7 @@
             }                                                           \
             MPIDI_COMMON_UCC_CALL_AND_CHECK(ucc_context_progress(\
                                    MPIDI_common_ucc_priv.ucc_context)); \
-            MPID_Progress_test(NULL);                                   \
+            MPIDI_COMMON_UCC_PROGRESS_POKE_DEV();                       \
         }                                                               \
         MPIDI_COMMON_UCC_CALL_AND_CHECK(ucc_collective_finalize(_req)); \
     } while (0)

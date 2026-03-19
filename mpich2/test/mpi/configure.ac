@@ -1908,6 +1908,7 @@ AC_OUTPUT(maint/testmerge \
           perf/Makefile \
           testlist \
           ps-test-minimal \
+          ps-test-ucc \
           cxx/testlist \
           cxx/topo/testlist \
           f77/testlist \

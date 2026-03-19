@@ -8494,6 +8494,9 @@ mpich2/test/mpi/parastation/testconf/psmgmt.testconf \
 mpich2/test/mpi/parastation/testconf/psmgmt/memcheck.testconf \
 mpich2/test/mpi/parastation/testconf/psmgmt/pmix.testconf \
 mpich2/test/mpi/parastation/testconf/psmgmt/valgrind.testconf \
+mpich2/test/mpi/parastation/testconf/ucc.testconf \
+mpich2/test/mpi/parastation/testconf/ucc/pedantic.testconf \
+mpich2/test/mpi/parastation/testconf/ucc/perceptive.testconf \
 mpich2/test/mpi/parastation/testconf/verbose.testconf \
 mpich2/test/mpi/parastation/testlist.in \
 mpich2/test/mpi/parastation/threads/Makefile.am \
@@ -8529,7 +8532,7 @@ mpich2/test/mpi/project.txt \
 mpich2/test/mpi/project_cxx.txt \
 mpich2/test/mpi/project_f.txt \
 mpich2/test/mpi/ps-test-minimal.in \
-mpich2/test/mpi/ps-test-ucc \
+mpich2/test/mpi/ps-test-ucc.in \
 mpich2/test/mpi/pt2pt/Makefile.am \
 mpich2/test/mpi/pt2pt/anyall.c \
 mpich2/test/mpi/pt2pt/big_count_status.c \
@@ -8773,6 +8776,7 @@ mpich2/test/mpi/threads/coll/Makefile.am \
 mpich2/test/mpi/threads/coll/allred.c \
 mpich2/test/mpi/threads/coll/iallred.c \
 mpich2/test/mpi/threads/coll/ps-test-minimal \
+mpich2/test/mpi/threads/coll/ps-test-ucc \
 mpich2/test/mpi/threads/coll/testlist.in \
 mpich2/test/mpi/threads/comm/Makefile.am \
 mpich2/test/mpi/threads/comm/comm_create_group_threads.c \
@@ -8806,6 +8810,7 @@ mpich2/test/mpi/threads/perf/mt_pt2pt_msgrate.c \
 mpich2/test/mpi/threads/perf/mt_rma_msgrate.c \
 mpich2/test/mpi/threads/perf/testlist \
 mpich2/test/mpi/threads/ps-test-minimal.in \
+mpich2/test/mpi/threads/ps-test-ucc \
 mpich2/test/mpi/threads/pt2pt/Makefile.am \
 mpich2/test/mpi/threads/pt2pt/alltoall.c \
 mpich2/test/mpi/threads/pt2pt/greq_test.c \

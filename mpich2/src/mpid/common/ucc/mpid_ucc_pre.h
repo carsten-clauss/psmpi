@@ -24,6 +24,7 @@ typedef struct {
     int relaxed_flag;           /* flag for activating more aggressive but unsafe optimizations (by default,
                                  * the UCC wrappers attempt to be as MPI-compliant as possible, but certain
                                  * optimizations might promise better performance at the cost of compliance) */
+    int threaded_flag;          /* flag for requesting thread safety from the UCC library and the wrappers */
 } MPIDI_common_ucc_config_t;
 
 int MPIDI_common_ucc_enable(MPIDI_common_ucc_config_t * config);
@@ -75,6 +76,21 @@ typedef enum {
     MPIDI_COMMON_UCC_RETVAL_SUCCESS = 0,
     MPIDI_COMMON_UCC_RETVAL_FALLBACK = 1,
 } MPIDI_common_ucc_error_t;
+
+/* Functions for an external but fast read access to the two
+ * interal status flags `ucc_enabled` and `ucc_initialized`.
+ */
+extern const int *const MPIDI_common_ucc_priv_ucc_enabled;
+static inline int MPIDI_common_ucc_is_enabled(void)
+{
+    return *MPIDI_common_ucc_priv_ucc_enabled;
+}
+
+extern const int *const MPIDI_common_ucc_priv_ucc_initialized;
+static inline int MPIDI_common_ucc_is_initialized(void)
+{
+    return *MPIDI_common_ucc_priv_ucc_initialized;
+}
 
 /* Macro for ADI3 devices to encapsulate calls to the UCC wrappers for the
  * collective functions. Use is optional, but improves consistency due to
