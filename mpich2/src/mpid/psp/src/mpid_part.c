@@ -15,7 +15,8 @@
 #include "mpid_psp_packed_msg.h"
 
 #define MPIDI_PSP_PART_REQ_USES_COMPRESSOR(_preq)                       \
-    (_preq->compr_req && _preq->compr_req->compressor &&                \
+    (MPIDI_Process.env.compressor.enable_support &&                     \
+     _preq->compr_req && _preq->compr_req->compressor &&                \
      _preq->compr_req->compressor->inflate_fn &&                        \
      (_preq->compr_req->compressor->inflate_fn !=                       \
       MPIX_COMPRESSOR_CONVERSION_FN_NULL))
@@ -630,7 +631,7 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
     int mpi_errno = MPI_SUCCESS;
     struct MPID_DEV_Request_partitioned *preq = &req->dev.kind.partitioned;
 
-    if (!info) {
+    if (!info || !MPIDI_Process.env.compressor.enable_support) {
         goto fn_exit;
     }
 
@@ -654,7 +655,7 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
         /* If not found, check if a matching compressor plugin can be loaded. */
         if (!compressor_found) {
 
-            if (!MPIDI_Process.env.enable_compressor_plugins) {
+            if (!MPIDI_Process.env.compressor.enable_plugins) {
                 /* Compressor plugins not activated at runtime: Do nothing! */
                 goto fn_exit;
             }
