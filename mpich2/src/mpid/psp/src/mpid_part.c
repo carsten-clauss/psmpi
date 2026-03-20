@@ -675,42 +675,56 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
                 goto fn_exit;
             }
 
-            /* First check if a plugin name was given. */
-            char info_compressor_plugin[MPI_MAX_INFO_VAL + 1];
+            /* First check if (a list of) plugin name(s) was given. */
+            char info_compressor_plugins[MPI_MAX_INFO_VAL + 1];
             MPIR_Info_get_impl(info, compressor_info_key_plugin, MPI_MAX_INFO_VAL,
-                               info_compressor_plugin, &info_flag);
+                               info_compressor_plugins, &info_flag);
             if (!info_flag) {
-                goto fn_exit;
+                MPIR_Info_get_impl(info, compressor_info_key_plugin_list, MPI_MAX_INFO_VAL,
+                                   info_compressor_plugins, &info_flag);
+                if (!info_flag) {
+                    goto fn_exit;
+                }
             }
 
-            /* If so, try to load the shared library and call the register function. */
-            void *dlhandle;
-            char *dlerror_str;
-            MPIX_Compressor_register_plugin_function *compressor_register_fn;
+            for (char *plugin_name =
+                 strtok(info_compressor_plugins, compressor_info_key_plugin_separator);
+                 plugin_name != NULL;
+                 plugin_name = strtok(NULL, compressor_info_key_plugin_separator)) {
 
-            dlerror();
-            dlhandle = dlopen(info_compressor_plugin, RTLD_LAZY);
-            dlerror_str = dlerror();
-            if (!dlhandle || dlerror_str) {
-                goto fn_exit;
+                /* If so, try to load the shared library and call the register function. */
+                void *dlhandle;
+                char *dlerror_str;
+                MPIX_Compressor_register_plugin_function *compressor_register_fn;
+
+                dlerror();
+                dlhandle = dlopen(plugin_name, RTLD_LAZY);
+                dlerror_str = dlerror();
+                if (!dlhandle || dlerror_str) {
+                    continue;
+                }
+
+                dlerror();
+                compressor_register_fn = dlsym(dlhandle, compressor_register_plugin_fn);
+                dlerror_str = dlerror();
+                if (dlerror_str) {
+                    continue;
+                }
+
+                mpi_errno = compressor_register_fn(info_compressor_name, info->handle);
+                if (mpi_errno != MPI_SUCCESS) {
+                    /* No error code generation: A failing `compressor_register_fn` is not to be
+                     * treated as an MPI error. This just deactivates the compressor use. */
+                    continue;
+                }
+
+                /* ...and then retry the lookup.  */
+                MPIR_Compressor_lookup(info_compressor_name, &compressor_found);
+                if (compressor_found) {
+                    break;
+                }
             }
 
-            dlerror();
-            compressor_register_fn = dlsym(dlhandle, compressor_register_plugin_fn);
-            dlerror_str = dlerror();
-            if (dlerror_str) {
-                goto fn_exit;
-            }
-
-            mpi_errno = compressor_register_fn(info_compressor_name, info->handle);
-            if (mpi_errno != MPI_SUCCESS) {
-                /* No error code generation: A failing `compressor_register_fn` is not to be
-                 * treated as an MPI error. This just deactivates the compressor use. */
-                goto fn_exit;
-            }
-
-            /* ...and then retry the lookup.  */
-            MPIR_Compressor_lookup(info_compressor_name, &compressor_found);
             if (!compressor_found) {
                 goto fn_exit;
             }
