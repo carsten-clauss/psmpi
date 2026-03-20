@@ -149,7 +149,6 @@ int main(int argc, char *argv[])
 
     MPI_Info_create(&info);
     MPI_Info_set(info, "compressor", "darexa-f");
-    MPI_Info_set(info, "compressor_plugin", "libmpix_compressor_d2i.so");
 
 #ifdef WITH_INFO_VIA_COMM
     MPI_Comm_set_info(MPI_COMM_WORLD, info);
