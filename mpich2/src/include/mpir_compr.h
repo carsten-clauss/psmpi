@@ -11,8 +11,12 @@
 /* info keys used for compressor handling */
 #define MPIX_COMPRESSOR_INFO_KEY_STRING "compressor"
 #define MPIX_COMPRESSOR_INFO_KEY_PLUGIN_STRING "compressor_plugin"
+#define MPIX_COMPRESSOR_INFO_KEY_PLUGIN_LIST_STRING "compressor_plugins"
+#define MPIX_COMPRESSOR_INFO_KEY_PLUGIN_SEPARATOR ","
 extern const char compressor_info_key[];
 extern const char compressor_info_key_plugin[];
+extern const char compressor_info_key_plugin_list[];
+extern const char compressor_info_key_plugin_separator[];
 
 /* symbol name for plugin function called to register a compressor */
 #define MPIX_COMPRESSOR_REGISTER_PLUGIN_FN_STRING "compressor_register"

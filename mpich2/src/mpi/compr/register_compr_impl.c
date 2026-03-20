@@ -13,6 +13,8 @@
 /* info keys used for compressor handling (see mpir_compr.h) */
 const char compressor_info_key[] = MPIX_COMPRESSOR_INFO_KEY_STRING;
 const char compressor_info_key_plugin[] = MPIX_COMPRESSOR_INFO_KEY_PLUGIN_STRING;
+const char compressor_info_key_plugin_list[] = MPIX_COMPRESSOR_INFO_KEY_PLUGIN_LIST_STRING;
+const char compressor_info_key_plugin_separator[] = MPIX_COMPRESSOR_INFO_KEY_PLUGIN_SEPARATOR;
 
 /* symbol name for plugin function called to register a compressor (see mpir_compr.h) */
 const char compressor_register_plugin_fn[] = MPIX_COMPRESSOR_REGISTER_PLUGIN_FN_STRING;
