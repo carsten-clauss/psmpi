@@ -205,7 +205,7 @@ typedef struct MPIDI_Process {
         unsigned enable_lazy_disconnect;
         struct {
             unsigned enable_support;
-            unsigned enable_plugins;
+            char *enable_plugins_str;
         } compressor;
         struct {
             int enable_rma_accumulate_ordering;

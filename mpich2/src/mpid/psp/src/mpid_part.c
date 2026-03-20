@@ -655,8 +655,23 @@ int MPIDI_PSP_part_check_info(MPIR_Info * info, MPIR_Request * req)
         /* If not found, check if a matching compressor plugin can be loaded. */
         if (!compressor_found) {
 
-            if (!MPIDI_Process.env.compressor.enable_plugins) {
+            if (!MPIDI_Process.env.compressor.enable_plugins_str) {
                 /* Compressor plugins not activated at runtime: Do nothing! */
+                goto fn_exit;
+            }
+
+            /* Check if there is a plugin name given via the environment variable. */
+            char *end;
+            long val;
+            errno = 0;
+            val = strtol(MPIDI_Process.env.compressor.enable_plugins_str, &end, 10);
+
+            if (end == MPIDI_Process.env.compressor.enable_plugins_str) {
+                /* Set this as the plugin name in the info object. */
+                MPIR_Info_set_impl(info, compressor_info_key_plugin,
+                                   MPIDI_Process.env.compressor.enable_plugins_str);
+            } else if (!val) {
+                /* Plugin use is disabled explicitly. */
                 goto fn_exit;
             }
 

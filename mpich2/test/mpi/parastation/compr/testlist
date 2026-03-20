@@ -10,4 +10,8 @@ mpix_compressor_plg_nop 2 arg=./.libs/libmpix_compressor_nop.so env=PSP_COMPRESS
 mpix_compressor_plg_d2i 2 arg=./.libs/libmpix_compressor_d2i.so env=PSP_COMPRESSOR_PLUGINS=1
 mpix_compressor_plg_c2i 2 arg=./.libs/libmpix_compressor_c2i.so arg=double_complex env=PSP_COMPRESSOR_PLUGINS=1
 mpix_compressor_plg_c2d2i 2 arg=./.libs/libmpix_compressor_c2d2i.so arg=double_complex env=PSP_COMPRESSOR_PLUGINS=1
+mpix_compressor_plg_nop_no_info 2 env=PSP_COMPRESSOR_PLUGINS=./.libs/libmpix_compressor_nop.so
+mpix_compressor_plg_d2i_no_info 2 env=PSP_COMPRESSOR_PLUGINS=./.libs/libmpix_compressor_d2i.so
+mpix_compressor_plg_c2i_no_info 2 arg=double_complex env=PSP_COMPRESSOR_PLUGINS=./.libs/libmpix_compressor_c2i.so
+mpix_compressor_plg_c2d2i_no_info 2 arg=double_complex env=PSP_COMPRESSOR_PLUGINS=./.libs/libmpix_compressor_c2d2i.so
 mpix_compressor_info 1

@@ -48,7 +48,11 @@ int main(int argc, char *argv[])
     MPI_Info_set(info, "compressor", "darexa-f");
 
     if (argc > 1) {
-        MPI_Info_set(info, "compressor_plugin", argv[1]);
+        if (!strcmp(argv[1], "double_complex")) {
+            dtype = MPI_DOUBLE_COMPLEX;
+        } else {
+            MPI_Info_set(info, "compressor_plugin", argv[1]);
+        }
     }
 
     if (argc > 2) {
