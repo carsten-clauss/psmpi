@@ -332,6 +332,8 @@ int MPII_Comm_init(MPIR_Comm * comm_p)
      * later be stored here */
     comm_p->info_ptr = NULL;
 
+    comm_p->collops.ptr = NULL;
+
     comm_p->committed = 0;
 
     /* Fields not set include context_id, remote and local size, and
@@ -803,6 +805,9 @@ int MPIR_Comm_commit(MPIR_Comm * comm)
         mpi_errno = MPIR_Comm_create_subcomms(comm);
         MPIR_ERR_CHECK(mpi_errno);
     }
+
+    /* Check environment variables for collops-related information. */
+    MPIR_Collops_check_env(comm);
 
     /* Create collectives-specific infrastructure */
     mpi_errno = MPIR_Coll_comm_init(comm);
