@@ -568,6 +568,7 @@ extern int * const MPI_WEIGHTS_EMPTY MPICH_API_PUBLIC;
 #define MPI_LOCK_SHARED     235
 
 #define MPIX_MAX_COMPRESSOR_STRING 128
+#define MPIX_MAX_COLLOPS_STRING 128
 
 /* for the datatype decoders */
 enum MPIR_Combiner_enum {
@@ -879,6 +880,35 @@ typedef int (MPIX_Compressor_conversion_function)(void *, int, MPI_Count, MPI_Da
 typedef int (MPIX_Compressor_deregister_function)(void *);
 #define MPIX_COMPRESSOR_DEREGISTER_FN_NULL ((MPIX_Compressor_deregister_function *)0)
 typedef int (MPIX_Compressor_register_plugin_function)(const char *, MPI_Info);
+
+typedef enum MPIX_Collops {
+    MPIX_COLLOP_NULL       = 0,
+    MPIX_COLLOP_ALL        = ~0,
+    MPIX_COLLOP_BARRIER    = 1 << 0,
+    MPIX_COLLOP_BCAST      = 1 << 1,
+    MPIX_COLLOP_SCATTER    = 1 << 2,
+    MPIX_COLLOP_SCATTERV   = 1 << 3,
+    MPIX_COLLOP_GATHER     = 1 << 4,
+    MPIX_COLLOP_GATHERV    = 1 << 5,
+    MPIX_COLLOP_ALLGATHER  = 1 << 6,
+    MPIX_COLLOP_ALLGATHERV = 1 << 7,
+    MPIX_COLLOP_ALLTOALL   = 1 << 8,
+    MPIX_COLLOP_ALLTOALLV  = 1 << 9,
+    MPIX_COLLOP_REDUCE     = 1 << 10,
+    MPIX_COLLOP_ALLREDUCE  = 1 << 11,
+} MPIX_Collops;
+
+typedef int (MPIX_Collops_algorithm_function)(int collop, const void *sbuf, MPI_Count scount, const MPI_Count scounts[], const MPI_Aint sdispls[], MPI_Datatype sdatatype, void *rbuf, MPI_Count rcount, const MPI_Count rcounts[], const MPI_Aint rdispls[], MPI_Datatype rdatatype, MPI_Op op, int root, MPI_Comm comm, void *extra_comm_state);
+#define MPIX_COLLOPS_ALGORITHM_FN_NULL ((MPIX_Collops_algorithm_function *)0)
+typedef int (MPIX_Collops_progress_function)(void *extra_state);
+#define MPIX_COLLOPS_PROGRESS_FN_NULL ((MPIX_Collops_progress_function *)0)
+typedef int (MPIX_Collops_comm_init_function)(MPI_Comm comm, void *extra_state, void *extra_comm_state);
+#define MPIX_COLLOPS_COMM_INIT_FN_NULL ((MPIX_Collops_comm_init_function *)0)
+typedef int (MPIX_Collops_comm_free_function)(void *extra_comm_state);
+#define MPIX_COLLOPS_COMM_FREE_FN_NULL ((MPIX_Collops_comm_free_function *)0)
+typedef int (MPIX_Collops_deregister_function)(void *extra_state);
+#define MPIX_COLLOPS_DEREGISTER_FN_NULL ((MPIX_Collops_deregister_function *)0)
+typedef int (MPIX_Collops_register_plugin_function)(const char *name, MPI_Info info);
 
 #ifndef BUILD_MPI_ABI
 /* types for the MPI_T_ interface */

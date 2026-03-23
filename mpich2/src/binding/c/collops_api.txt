@@ -1,0 +1,58 @@
+# vim: set ft=c:
+
+MPIX_Collops_algorithm_function:
+    .desc: Function to perform the algorithm(s) of a collective operation
+    collop: KEYVAL, [Type of the collective operation
+    sendbuf: BUFFER, constant=True, [starting address of send buffer]
+    sendcount: POLYXFER_NUM_ELEM_NNI, [number of elements sent to each process]
+    sendcounts: POLYXFER_NUM_ELEM_NNI, constant=True, length=*, suppress=lis_paren, [non-negative integer array (of length group size) specifying the number of elements to send to each rank]
+    sdispls: POLYDISPLACEMENT, constant=True, length=*, suppress=lis_paren, [integer array (of length group size). Entry j specifies the displacement (relative to sendbuf) from which to take the outgoing data destined for process j]
+    sendtype: DATATYPE, [data type of send buffer elements]
+    recvbuf: BUFFER, direction=out, [address of receive buffer]
+    recvcount: POLYXFER_NUM_ELEM_NNI, [number of elements received from any process]
+    recvcounts: POLYXFER_NUM_ELEM_NNI, constant=True, length=*, suppress=lis_paren, [non-negative integer array (of length group size) specifying the number of elements that can be received from each rank]
+    rdispls: POLYDISPLACEMENT, constant=True, length=*, suppress=lis_paren, [integer array (of length group size). Entry i specifies the displacement (relative to recvbuf) at which to place the incoming data from process i]
+    recvtype: DATATYPE, [data type of receive buffer elements]
+    op: OPERATION, [operation]
+    root: RANK, [root rank]
+    comm: COMMUNICATOR, [communicator]
+    extra_comm_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Collops_progress_function:
+    .desc: Callback function invoked to trigger progress of a registered collective operation
+    extra_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Collops_comm_init_function:
+    .desc: Callback function invoked by a collective to initialize an extra state for a communicator
+    comm: COMMUNICATOR, [communicator]
+    extra_state: EXTRA_STATE
+    extra_comm_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Collops_comm_free_function:
+    .desc: Callback function invoked to release resources allocated by the collective for a communicator
+    extra_comm_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Collops_deregister_function:
+    .desc: Callback function invoked when all resources are to be released at the end
+    extra_state: EXTRA_STATE
+    ierror: ERROR_CODE, suppress=c_parameter
+
+MPIX_Register_collops:
+    name: STRING, constant=True, [Name of the collops provider to register (string)]
+    collops: KEYVAL, [Types of the collops supported by the provider]
+    algorithm_fn: FUNCTION_SMALL, func_type=MPIX_Collops_algorithm_function, [Callback function invoked to perform a user-defined collective operation]
+    progress_fn: FUNCTION_SMALL, func_type=MPIX_Collops_progress_function, [Callback function invoked to trigger progress of a registered collective operation]
+    comm_init_fn: FUNCTION_SMALL, func_type=MPIX_Collops_comm_init_function, [Callback function invoked to initialize an extra state for a communicator]
+    comm_free_fn: FUNCTION_SMALL, func_type=MPIX_Collops_comm_free_function, [Callback function invoked to release resources allocated for a communicator]
+    deregister_fn: FUNCTION_SMALL, func_type=MPIX_Collops_deregister_function, [Callback function invoked when all resources are to be released at the end]
+    info: INFO, [Info argument]
+    extra_state: EXTRA_STATE, [Extra state that is passed to comm_init_fn and deregister_fn (pointer)]
+    .desc: Register functions for user-defined collective operation(s)
+    .skip: validate-FUNCTION_SMALL, validate-STRING
+{ -- error_check --
+    MPIR_ERRTEST_ARGNULL(name, "name", mpi_errno);
+}

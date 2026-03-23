@@ -21,6 +21,11 @@ public :: MPIX_COMPRESSOR_CONVERSION_FN_NULL
 public :: MPIX_COMPRESSOR_REQ_INIT_FN_NULL
 public :: MPIX_COMPRESSOR_REQ_FREE_FN_NULL
 public :: MPIX_COMPRESSOR_DEREGISTER_FN_NULL
+public :: MPIX_COLLOPS_ALGORITHM_FN_NULL
+public :: MPIX_COLLOPS_PROGRESS_FN_NULL
+public :: MPIX_COLLOPS_COMM_INIT_FN_NULL
+public :: MPIX_COLLOPS_COMM_FREE_FN_NULL
+public :: MPIX_COLLOPS_DEREGISTER_FN_NULL
 
 abstract interface
 
@@ -241,6 +246,61 @@ subroutine MPIX_Compressor_deregister_function(extra_state, ierror)
     integer(kind=MPI_ADDRESS_KIND) :: extra_state
 end subroutine
 
+subroutine MPIX_Collops_algorithm_function(collop, sbuf, scount, scounts, sdispls, &
+     sdatatype, rbuf, rcount, rcounts, rdispls, rdatatype, op, root, comm, &
+     extra_comm_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Datatype, MPI_Comm, MPI_Op
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND, MPI_COUNT_KIND
+    implicit none
+    type(c_ptr), value :: sbuf, rbuf
+    type(MPI_Datatype) :: sdatatype, rdatatype
+    integer :: ierror
+    integer :: collop
+    integer :: root
+    type(MPI_Op) :: op
+    type(MPI_Comm) :: comm
+    integer(kind=MPI_COUNT_KIND) :: scount, rcount
+    integer(kind=MPI_ADDRESS_KIND) :: scounts, sdispls
+    integer(kind=MPI_ADDRESS_KIND) :: rcounts, rdispls
+    integer(kind=MPI_ADDRESS_KIND) :: extra_comm_state
+end subroutine
+
+subroutine MPIX_Collops_progress_function(extra_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+end subroutine
+
+subroutine MPIX_Collops_comm_init_function(comm, extra_state, extra_comm_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Comm
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    type(MPI_Comm) :: comm
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+    integer(kind=MPI_ADDRESS_KIND) :: extra_comm_state
+end subroutine
+
+subroutine MPIX_Collops_comm_free_function(extra_comm_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_comm_state
+end subroutine
+
+subroutine MPIX_Collops_deregister_function(extra_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+end subroutine
+
 end interface
 
 contains
@@ -436,6 +496,61 @@ subroutine MPIX_COMPRESSOR_REQ_FREE_FN_NULL(extra_req_state, ierror)
 end subroutine
 
 subroutine MPIX_COMPRESSOR_DEREGISTER_FN_NULL(extra_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+end subroutine
+
+subroutine MPIX_COLLOPS_ALGORITHM_FN_NULL(collop, sbuf, scount, scounts, sdispls, &
+     sdatatype, rbuf, rcount, rcounts, rdispls, rdatatype, op, root, comm, &
+     extra_comm_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Datatype, MPI_Comm, MPI_Op
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND, MPI_COUNT_KIND
+    implicit none
+    type(c_ptr), value :: sbuf, rbuf
+    type(MPI_Datatype) :: sdatatype, rdatatype
+    integer :: ierror
+    integer :: collop
+    integer :: root
+    type(MPI_Op) :: op
+    type(MPI_Comm) :: comm
+    integer(kind=MPI_COUNT_KIND) :: scount, rcount
+    integer(kind=MPI_ADDRESS_KIND) :: scounts, sdispls
+    integer(kind=MPI_ADDRESS_KIND) :: rcounts, rdispls
+    integer(kind=MPI_ADDRESS_KIND) :: extra_comm_state
+end subroutine
+
+subroutine MPIX_COLLOPS_PROGRESS_FN_NULL(extra_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+end subroutine
+
+subroutine MPIX_COLLOPS_COMM_INIT_FN_NULL(comm, extra_state, extra_comm_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_types, only : MPI_Comm
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    type(MPI_Comm) :: comm
+    integer(kind=MPI_ADDRESS_KIND) :: extra_state
+    integer(kind=MPI_ADDRESS_KIND) :: extra_comm_state
+end subroutine
+
+subroutine MPIX_COLLOPS_COMM_FREE_FN_NULL(extra_comm_state, ierror)
+    use, intrinsic :: iso_c_binding, only : c_ptr
+    use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
+    implicit none
+    integer :: ierror
+    integer(kind=MPI_ADDRESS_KIND) :: extra_comm_state
+end subroutine
+
+subroutine MPIX_COLLOPS_DEREGISTER_FN_NULL(extra_state, ierror)
     use, intrinsic :: iso_c_binding, only : c_ptr
     use mpi_f08_compile_constants, only : MPI_ADDRESS_KIND
     implicit none

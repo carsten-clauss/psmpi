@@ -629,6 +629,25 @@ def dump_f08_wrappers_f(func, is_large):
                 uses['c_associated'] = 1
                 uses['c_null_funptr'] = 1
                 uses[FN_NULL] = 1
+        elif RE.match(r'mpix_register_collops', func['name'], re.IGNORECASE):
+            FN_NULL=""
+            if RE.match(r'collops_algorithm_fn', p['name']):
+                FN_NULL="MPIX_COLLOPS_CONVERSION_FN_NULL"
+            elif RE.match(r'collops_progress_fn', p['name']):
+                FN_NULL="MPIX_COLLOPS_PROGRESS_FN_NULL"
+            elif RE.match(r'collops_comm_init_fn', p['name']):
+                FN_NULL="MPIX_COLLOPS_COMM_INIT_FN_NULL"
+            elif RE.match(r'collops_comm_free_fn', p['name']):
+                FN_NULL="MPIX_COLLOPS_COMM_FREE_FN_NULL"
+            elif RE.match(r'collops_deregister_fn', p['name']):
+                FN_NULL="MPIX_COLLOPS_DEREGISTER_FN_NULL"
+            if FN_NULL:
+                convert_list_pre.append("IF (c_associated(%s_c, c_funloc(%s))) then" % (p['name'], FN_NULL))
+                convert_list_pre.append("    %s_c = c_null_funptr" % p['name'])
+                convert_list_pre.append("END IF")
+                uses['c_associated'] = 1
+                uses['c_null_funptr'] = 1
+                uses[FN_NULL] = 1
         arg = "%s_c" % p['name']
         return (arg, arg)
 
