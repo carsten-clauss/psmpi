@@ -11,8 +11,12 @@
 /* info keys used for collops handling */
 #define MPIX_COLLOPS_INFO_KEY_STRING "collops"
 #define MPIX_COLLOPS_INFO_KEY_PLUGIN_STRING "collops_plugin"
+#define MPIX_COLLOPS_INFO_KEY_PLUGIN_LIST_STRING "compressor_plugins"
+#define MPIX_COLLOPS_INFO_KEY_PLUGIN_SEPARATOR ","
 extern const char collops_info_key[];
 extern const char collops_info_key_plugin[];
+extern const char collops_info_key_plugin_list[];
+extern const char collops_info_key_plugin_separator[];
 
 /* symbol name for plugin function called to register a collops */
 #define MPIX_COLLOPS_REGISTER_PLUGIN_FN_STRING "collops_register"
@@ -47,3 +51,8 @@ int MPIR_Collops_set_info(MPIR_Info *);
 /* This function is to be used at the very end to release all registered collopss and
  * their allocated resources via their deregister function. */
 int MPIR_Collops_deregister_all(void);
+
+/* Check the info object attached to the communicator for collops-related info keys.
+ * If any are found, they are evaluated, and any additional information is appended
+ * to the communicator's `collops` sub-struct. */
+int MPIR_Collops_check_info(MPIR_Comm * comm);

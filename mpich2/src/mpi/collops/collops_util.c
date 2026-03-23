@@ -9,6 +9,7 @@
  */
 
 #include "mpiimpl.h"
+#include <dlfcn.h>
 
 int MPIR_Collops_lookup(const char *collops_name, MPIR_Collops ** collops_pptr)
 {
@@ -191,4 +192,177 @@ int MPIR_Collops_deregister_all(void)
     }
 
     return MPI_SUCCESS;
+}
+
+int MPIR_Collops_check_info(MPIR_Comm * comm)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Assert(comm);
+    MPIR_Info *info = comm->info_ptr;
+    MPIR_Assert(info);
+
+    if (!MPIR_CVAR_COLLOPS_SUPPORT) {
+        goto fn_exit;
+    }
+
+    int info_flag = 0;
+    char info_collops_name[MPI_MAX_INFO_VAL + 1];
+    mpi_errno =
+        MPIR_Info_get_impl(info, collops_info_key, MPI_MAX_INFO_VAL, info_collops_name, &info_flag);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    if (!info_flag || comm->collops.ptr) {
+        /* Not requested or already considered. Do nothing. */
+        goto fn_exit;
+    }
+
+    /* Check if collops name is given in a "comm=collops" format. */
+    const char *assign = strchr(info_collops_name, '=');
+    if (assign) {
+        if (comm->name) {
+            const char *ptr = info_collops_name;
+            /* Allow also for comma-separated entries in this case. */
+            while (ptr && assign) {
+                const char *comma = strchr(assign + 1, ',');
+                if (!comma) {
+                    comma = ptr + strlen(ptr);
+                }
+
+                size_t key_len = assign - ptr;
+                size_t val_len = comma - (assign + 1);
+
+                if (strncmp(ptr, comm->name, key_len) == 0) {
+                    /* The communicator name matches. Set the value as the collops name. */
+                    sprintf(info_collops_name, "%.*s", (int) val_len, assign + 1);
+                    break;
+                }
+                ptr = (*comma == ',') ? comma + 1 : comma;
+                assign = strchr(ptr ? ptr : "", '=');
+            }
+        }
+        /* Check if communicator name could be resolved. */
+        assign = strchr(info_collops_name, '=');
+        if (assign) {
+            /* Communicator name could not be resolved. Do nothing. */
+            goto fn_exit;
+        }
+    }
+
+    MPIR_Collops *collops_found = NULL;
+    MPIR_Collops_lookup(info_collops_name, &collops_found);
+
+    /* If not found, check if a matching collops plugin can be loaded. */
+    if (!collops_found) {
+
+        /* First check if a plugin name was given. */
+        char info_collops_plugins[MPI_MAX_INFO_VAL + 1];
+        mpi_errno =
+            MPIR_Info_get_impl(info, collops_info_key_plugin, MPI_MAX_INFO_VAL,
+                               info_collops_plugins, &info_flag);
+        MPIR_ERR_CHECK(mpi_errno);
+        if (!info_flag) {
+            mpi_errno =
+                MPIR_Info_get_impl(info, collops_info_key_plugin_list, MPI_MAX_INFO_VAL,
+                                   info_collops_plugins, &info_flag);
+            MPIR_ERR_CHECK(mpi_errno);
+            if (!info_flag) {
+                goto fn_exit;
+            }
+        }
+
+        for (char *plugin_name =
+             strtok(info_collops_plugins, collops_info_key_plugin_separator);
+             plugin_name != NULL; plugin_name = strtok(NULL, collops_info_key_plugin_separator)) {
+
+            /* If so, try to load the shared library and call the register function. */
+            void *dlhandle;
+            char *dlerror_str;
+            MPIX_Collops_register_plugin_function *collops_register_fn;
+
+            dlerror();
+            dlhandle = dlopen(plugin_name, RTLD_LAZY);
+            dlerror_str = dlerror();
+            if (!dlhandle || dlerror_str) {
+                continue;
+            }
+
+            dlerror();
+            collops_register_fn = dlsym(dlhandle, collops_register_plugin_fn);
+            dlerror_str = dlerror();
+            if (dlerror_str) {
+                continue;
+            }
+
+            mpi_errno = collops_register_fn(info_collops_name, info->handle);
+            if (mpi_errno != MPI_SUCCESS) {
+                /* No error code generation: A failing `collops_register_fn` is not to be
+                 * treated as an MPI error. This just deactivates the collops use. */
+                continue;
+            }
+
+            /* ...and then retry the lookup.  */
+            MPIR_Collops_lookup(info_collops_name, &collops_found);
+            if (collops_found) {
+                break;
+            }
+        }
+
+        if (!collops_found) {
+            goto fn_exit;
+        }
+    }
+
+    MPIR_Assertp(collops_found);
+
+    comm->collops.ptr = collops_found;
+    comm->collops.comm_is_active = 0;
+    comm->collops.comm_is_initialized = 0;
+    comm->collops.comm_extra_state = NULL;
+
+  fn_exit:
+    return mpi_errno;
+
+  fn_fail:
+    goto fn_exit;
+}
+
+int MPIR_Collops_check_env(MPIR_Comm * comm)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Assert(comm);
+
+    if (!MPIR_CVAR_COLLOPS_SUPPORT) {
+        goto fn_exit;
+    }
+
+    /* Check if there is a collop preset for all communicators via the environment variable. */
+    if (MPIR_CVAR_COLLOPS_PRESET && strlen(MPIR_CVAR_COLLOPS_PRESET)) {
+        /* Set this as the collops name in the info object. */
+        if (!comm->info_ptr) {
+            /* If no info object exists yet, create one first. */
+            mpi_errno = MPIR_Info_alloc(&comm->info_ptr);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+        mpi_errno = MPIR_Info_set_impl(comm->info_ptr, collops_info_key, MPIR_CVAR_COLLOPS_PRESET);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+    /* Check if there is a plugin name given via the environment variable. */
+    if (MPIR_CVAR_COLLOPS_PLUGINS && strlen(MPIR_CVAR_COLLOPS_PLUGINS)) {
+        /* Set this as the plugin name in the info object. */
+        if (!comm->info_ptr) {
+            /* If no info object exists yet, create one first. */
+            mpi_errno = MPIR_Info_alloc(&comm->info_ptr);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+        mpi_errno =
+            MPIR_Info_set_impl(comm->info_ptr, collops_info_key_plugin, MPIR_CVAR_COLLOPS_PLUGINS);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+  fn_exit:
+    return mpi_errno;
+
+  fn_fail:
+    goto fn_exit;
 }
