@@ -43,6 +43,7 @@ noinst_HEADERS +=                   \
     src/include/mpir_ext.h            \
     src/include/mpir_func.h         \
     src/include/mpir_coll.h         \
+    src/include/mpir_collops.h      \
     src/include/mpir_comm.h         \
     src/include/mpir_compr.h        \
     src/include/mpir_debugger.h     \
