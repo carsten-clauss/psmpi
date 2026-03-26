@@ -759,7 +759,9 @@ enum MPIR_Combiner_enum {
 #define MPIX_ERR_STREAM               MPICH_ERR_FIRST_MPIX+6 /* Invalid stream */
 #define MPIX_ERR_TIMEOUT              MPICH_ERR_FIRST_MPIX+7 /* Operation timed out */
 
-#define MPICH_ERR_LAST_MPIX           MPICH_ERR_FIRST_MPIX+7
+#define MPIX_ERR_FALLBACK             MPICH_ERR_FIRST_MPIX+8 /* Fallback for operation requested */
+
+#define MPICH_ERR_LAST_MPIX           MPICH_ERR_FIRST_MPIX+8
 
 /* End of MPI's error classes */
 
@@ -883,7 +885,6 @@ typedef int (MPIX_Compressor_register_plugin_function)(const char *, MPI_Info);
 
 typedef enum MPIX_Collops {
     MPIX_COLLOP_NULL       = 0,
-    MPIX_COLLOP_ALL        = ~0,
     MPIX_COLLOP_BARRIER    = 1 << 0,
     MPIX_COLLOP_BCAST      = 1 << 1,
     MPIX_COLLOP_SCATTER    = 1 << 2,
@@ -896,6 +897,9 @@ typedef enum MPIX_Collops {
     MPIX_COLLOP_ALLTOALLV  = 1 << 9,
     MPIX_COLLOP_REDUCE     = 1 << 10,
     MPIX_COLLOP_ALLREDUCE  = 1 << 11,
+    MPIX_COLLOP_OP_MAX     = 1 << 12,
+    MPIX_COLLOP_ALL        = ((MPIX_COLLOP_OP_MAX) - 1),
+    MPIX_COLLOP_INTERCOMM  = 1 << 20,
 } MPIX_Collops;
 
 typedef int (MPIX_Collops_algorithm_function)(int collop, const void *sbuf, MPI_Count scount, const MPI_Count scounts[], const MPI_Aint sdispls[], MPI_Datatype sdatatype, void *rbuf, MPI_Count rcount, const MPI_Count rcounts[], const MPI_Aint rdispls[], MPI_Datatype rdatatype, MPI_Op op, int root, MPI_Comm comm, void *extra_comm_state);

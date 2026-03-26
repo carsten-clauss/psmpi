@@ -1197,6 +1197,14 @@ int MPIR_Comm_delete_internal(MPIR_Comm * comm_ptr)
         if (MPIR_Process.comm_parent == comm_ptr)
             MPIR_Process.comm_parent = NULL;
 
+        /* Invoke callback for collops (if provided) */
+        if (comm_ptr->collops.ptr && comm_ptr->collops.comm_is_initialized) {
+            MPIR_Assert(!comm_ptr->collops.comm_is_active);
+            if (comm_ptr->collops.ptr->comm_free_fn) {
+                comm_ptr->collops.ptr->comm_free_fn(comm_ptr->collops.comm_extra_state);
+            }
+        }
+
         /* Cleanup collectives-specific infrastructure */
         mpi_errno = MPII_Coll_comm_cleanup(comm_ptr);
         MPIR_ERR_CHECK(mpi_errno);

@@ -526,6 +526,16 @@ def dump_mpir(name, blocking_type):
     if need_buffer_swap:
         dump_buffer_swap_pre()
 
+    need_fn_exit = False
+    if blocking_type == "blocking" and re.match(r'(barrier|bcast|scatter|scatterv|gather|gatherv|allgather|allgatherv|alltoall|alltoallv|reduce|allreduce)$', name) and not re.match(r'(reduce_scatter)$', name):
+        G.out.append("if (comm_ptr->collops.ptr || comm_ptr->info_ptr)")
+        dump_open('{')
+        dump_split(2, "mpi_errno = MPIR_Collops_%s(%s);" % (name, func_args))
+        G.out.append(" if (mpi_errno == MPI_SUCCESS) goto fn_exit;")
+        G.out.append(" if (mpi_errno != MPIX_ERR_FALLBACK) goto fn_fail;")
+        dump_close("}")
+        need_fn_exit = True
+
     cond1 = "MPIR_CVAR_DEVICE_COLLECTIVES == MPIR_CVAR_DEVICE_COLLECTIVES_all"
     cond2 = "MPIR_CVAR_DEVICE_COLLECTIVES == MPIR_CVAR_DEVICE_COLLECTIVES_percoll"
     cond3 = "MPIR_CVAR_%s_DEVICE_COLLECTIVE" % NAME
@@ -540,7 +550,10 @@ def dump_mpir(name, blocking_type):
     if need_buffer_swap:
         dump_buffer_swap_post()
     G.out.append("")
-    G.out.append("return mpi_errno;")
+    if need_fn_exit:
+        dump_fn_exit()
+    else:
+        G.out.append("return mpi_errno;")
     dump_close("}")
 
 # ----
