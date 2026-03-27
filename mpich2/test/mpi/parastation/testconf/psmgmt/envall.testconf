@@ -1,0 +1,11 @@
+# Export all environment variables to the executables of the test run
+#
+# The mpiexec command from psmgmt typically exports only a subset of environment
+# variables (for example, all those beginning with PSP). However, to ensure that
+# all variables (that are exported when "make test" is called) are also passed
+# on to the processes spawned by the psid, the "--envall" option must be used,
+# which is included and set in this TESTCONF.
+#
+SCRIPTDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source ${SCRIPTDIR}/../psmgmt.testconf
+export MPITEST_MPIEXECARG="${MPITEST_MPIEXECARG} --envall"
