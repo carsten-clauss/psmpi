@@ -8491,6 +8491,7 @@ mpich2/test/mpi/parastation/testconf/hydra.testconf \
 mpich2/test/mpi/parastation/testconf/patient.testconf \
 mpich2/test/mpi/parastation/testconf/prrte.testconf \
 mpich2/test/mpi/parastation/testconf/psmgmt.testconf \
+mpich2/test/mpi/parastation/testconf/psmgmt/envall.testconf \
 mpich2/test/mpi/parastation/testconf/psmgmt/memcheck.testconf \
 mpich2/test/mpi/parastation/testconf/psmgmt/pmix.testconf \
 mpich2/test/mpi/parastation/testconf/psmgmt/valgrind.testconf \
