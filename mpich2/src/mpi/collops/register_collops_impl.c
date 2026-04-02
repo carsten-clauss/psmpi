@@ -66,7 +66,7 @@ const char collops_register_plugin_fn[] = MPIX_COLLOPS_REGISTER_PLUGIN_FN_STRING
 /* list of collopss registered by the user (see mpir_compr.h) */
 MPL_atomic_ptr_t MPIR_Collops_head;
 
-int MPIR_Register_collops_impl(const char *name, int collops,
+int MPIR_Register_collops_impl(const char *name, int collops, int collapse_dtypes,
                                MPIX_Collops_algorithm_function * algorithm_fn,
                                MPIX_Collops_comm_init_function * comm_init_fn,
                                MPIX_Collops_comm_free_function * comm_free_fn,
@@ -88,6 +88,7 @@ int MPIR_Register_collops_impl(const char *name, int collops,
     mpir_collops = MPL_malloc(sizeof(MPIR_Collops), MPL_MEM_OTHER);
     mpir_collops->name = MPL_strdup(name);
     mpir_collops->collops_mask = collops;
+    mpir_collops->collapse_dtypes = collapse_dtypes;
     mpir_collops->extra_state = extra_state;
     mpir_collops->algorithm_fn = algorithm_fn;
     mpir_collops->comm_init_fn = comm_init_fn;
