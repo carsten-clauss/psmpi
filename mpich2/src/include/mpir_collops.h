@@ -8,6 +8,8 @@
  * file.
  */
 
+#include "mpir_collops_dtypes.h"
+
 /* info keys used for collops handling */
 #define MPIX_COLLOPS_INFO_KEY_STRING "collops"
 #define MPIX_COLLOPS_INFO_KEY_PLUGIN_STRING "collops_plugin"
@@ -25,6 +27,7 @@ extern const char collops_register_plugin_fn[];
 typedef struct MPIR_Collops {
     char *name;
     int collops_mask;
+    int collapse_dtypes;
     MPIX_Collops_algorithm_function *algorithm_fn;
     MPIX_Collops_progress_function *progress_fn;
     MPIX_Collops_comm_init_function *comm_init_fn;
@@ -133,11 +136,20 @@ static inline void *swap_from_aint_to_count(const MPI_Aint counts[], MPIR_Comm *
                         tmp_rcountv = free_rcountv = swap_from_aint_to_count(_rcountv, _comm);   \
                     }                                                                            \
                 }                                                                                \
-                mpi_errno = _comm->collops.ptr->algorithm_fn(MPIX_COLLOP_ ## _collop,            \
+                if (!_comm->collops.ptr->collapse_dtypes) {                                      \
+                    mpi_errno = _comm->collops.ptr->algorithm_fn(MPIX_COLLOP_ ## _collop,        \
                                                  _sbuf, _scount, tmp_scountv, _sdispls, _sdtype, \
                                                  _rbuf, _rcount, tmp_rcountv, _rdispls, _rdtype, \
                                                  _op, _root, _comm->handle,                      \
                                                  _comm->collops.comm_extra_state);               \
+                } else {                                                                         \
+                    mpi_errno = collapse_dtypes(_comm->collops.ptr->algorithm_fn,                \
+                                                MPIX_COLLOP_ ## _collop,                         \
+                                                 _sbuf, _scount, tmp_scountv, _sdispls, _sdtype, \
+                                                 _rbuf, _rcount, tmp_rcountv, _rdispls, _rdtype, \
+                                                 _op, _root, _comm,                              \
+                                                _comm->collops.comm_extra_state);                \
+                }                                                                                \
                 _comm->collops.comm_is_active &= ~(MPIX_COLLOP_ ## _collop);                     \
             }                                                                                    \
         }                                                                                        \

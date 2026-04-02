@@ -209,7 +209,6 @@ typedef struct MPIR_Stream MPIR_Stream;
 #include "mpir_progress_hook.h"
 #include "mpir_win.h"
 #include "mpir_coll.h"
-#include "mpir_collops.h"
 #include "mpir_csel.h"
 #include "mpir_func.h"
 #include "mpir_nbc.h"
@@ -226,6 +225,7 @@ typedef struct MPIR_Stream MPIR_Stream;
 #include "mpir_hwtopo.h"
 #include "mpir_nettopo.h"
 #include "mpir_impl.h"
+#include "mpir_collops.h"
 
 #include "mpir_gpu_util.h"
 #include "mpir_async_things.h"

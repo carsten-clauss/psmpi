@@ -3,6 +3,7 @@
 MPIX_Collops_algorithm_function:
     .desc: Function to perform the algorithm(s) of a collective operation
     collop: KEYVAL, [Type of the collective operation
+    collapse_dtypes:
     sendbuf: BUFFER, constant=True, [starting address of send buffer]
     sendcount: POLYXFER_NUM_ELEM_NNI, [number of elements sent to each process]
     sendcounts: POLYXFER_NUM_ELEM_NNI, constant=True, length=*, suppress=lis_paren, [non-negative integer array (of length group size) specifying the number of elements to send to each rank]
@@ -44,6 +45,7 @@ MPIX_Collops_deregister_function:
 MPIX_Register_collops:
     name: STRING, constant=True, [Name of the collops provider to register (string)]
     collops: KEYVAL, [Types of the collops supported by the provider]
+    collapse_dtypes: LOGICAL, direction=in, [if true, derived dataytypes shall collapse to a single basic one, if possible]
     algorithm_fn: FUNCTION_SMALL, func_type=MPIX_Collops_algorithm_function, [Callback function invoked to perform a user-defined collective operation]
     progress_fn: FUNCTION_SMALL, func_type=MPIX_Collops_progress_function, [Callback function invoked to trigger progress of a registered collective operation]
     comm_init_fn: FUNCTION_SMALL, func_type=MPIX_Collops_comm_init_function, [Callback function invoked to initialize an extra state for a communicator]

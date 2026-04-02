@@ -119,7 +119,7 @@ static int mpir_collops_register_progress_fn(MPIX_Collops_progress_function * pr
     return mpi_errno;
 }
 
-int MPIR_Register_collops_impl(const char *name, int collops,
+int MPIR_Register_collops_impl(const char *name, int collops, int collapse_dtypes,
                                MPIX_Collops_algorithm_function * algorithm_fn,
                                MPIX_Collops_progress_function * progress_fn,
                                MPIX_Collops_comm_init_function * comm_init_fn,
@@ -142,6 +142,7 @@ int MPIR_Register_collops_impl(const char *name, int collops,
     mpir_collops = MPL_malloc(sizeof(MPIR_Collops), MPL_MEM_OTHER);
     mpir_collops->name = MPL_strdup(name);
     mpir_collops->collops_mask = collops;
+    mpir_collops->collapse_dtypes = collapse_dtypes;
     mpir_collops->extra_state = extra_state;
     mpir_collops->algorithm_fn = algorithm_fn;
     mpir_collops->progress_fn = progress_fn;
