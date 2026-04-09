@@ -1,2 +1,4 @@
 pscoll_ucc 4
 pscoll_ucc_plg 4 env=MPIR_CVAR_COLLOPS_PLUGINS=./.libs/libpscoll_ucc.so env=MPIR_CVAR_COLLOPS_PRESET=pscoll_ucc
+pscoll_gloo 4
+pscoll_gloo_plg 4 env=MPIR_CVAR_COLLOPS_PLUGINS=./.libs/libpscoll_gloo.so env=MPIR_CVAR_COLLOPS_PRESET=pscoll_gloo
