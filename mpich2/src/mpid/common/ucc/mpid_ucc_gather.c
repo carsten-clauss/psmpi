@@ -38,13 +38,13 @@ static inline ucc_status_t mpidi_ucc_gather_init(const void *sbuf, MPI_Aint scou
     if (ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_S(gather);
         ucc_sdt =
-            mpidi_ucc_dytpe_packing_send(sbuf, scount, 1 /* single send chunk */ , sdtype, req);
+            mpidi_ucc_dtype_packing_send(sbuf, scount, 1 /* single send chunk */ , sdtype, req);
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(gather, ucc_sdt);
     }
 
     if (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_R(gather);
-        ucc_rdt = mpidi_ucc_dytpe_packing_recv_prep(rbuf, rcount, rdtype, comm_size, req);
+        ucc_rdt = mpidi_ucc_dtype_packing_recv_prep(rbuf, rcount, rdtype, comm_size, req);
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(gather, ucc_rdt);
     }
 
@@ -122,7 +122,7 @@ int MPIDI_common_ucc_gather(const void *sbuf, MPI_Aint scount, MPI_Datatype sdty
     MPIDI_COMMON_UCC_WRAPPER_EXECUTE(gather, sbuf, scount, sdtype, rbuf, rcount, rdtype, root,
                                      comm_ptr, &req);
 
-    mpidi_ucc_dytpe_packing_recv_done(rbuf, rcount, rdtype, comm_size, &req);
+    mpidi_ucc_dtype_packing_recv_done(rbuf, rcount, rdtype, comm_size, &req);
 
     MPIDI_COMMON_UCC_WRAPPER_EXIT(gather);
 }

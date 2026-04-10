@@ -25,10 +25,10 @@ static inline ucc_status_t mpidi_ucc_bcast_init(void *buf, MPI_Aint count,
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY(bcast);
         if (comm_rank == root) {
             ucc_dt =
-                mpidi_ucc_dytpe_packing_send(buf, count, 1 /* single send chunk */ , dtype, req);
+                mpidi_ucc_dtype_packing_send(buf, count, 1 /* single send chunk */ , dtype, req);
         } else {
             ucc_dt =
-                mpidi_ucc_dytpe_packing_recv_prep(buf, count, dtype, 1 /* single recv chunk */ ,
+                mpidi_ucc_dtype_packing_recv_prep(buf, count, dtype, 1 /* single recv chunk */ ,
                                                   req);
         }
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(bcast, ucc_dt);
@@ -79,7 +79,7 @@ int MPIDI_common_ucc_bcast(void *buf, MPI_Aint count, MPI_Datatype dtype, int ro
 
     MPIDI_COMMON_UCC_WRAPPER_EXECUTE(bcast, buf, count, dtype, root, comm_ptr, &req);
 
-    mpidi_ucc_dytpe_packing_recv_done(buf, count, dtype, 1 /* single recv chunk */ , &req);
+    mpidi_ucc_dtype_packing_recv_done(buf, count, dtype, 1 /* single recv chunk */ , &req);
 
     MPIDI_COMMON_UCC_WRAPPER_EXIT(bcast);
 }
