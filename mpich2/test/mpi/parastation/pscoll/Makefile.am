@@ -12,7 +12,7 @@ include $(top_srcdir)/Makefile_single.mtest
 EXTRA_DIST = testlist
 
 noinst_libdir = $(top_srcdir)/parastation/pscoll/
-noinst_lib_LTLIBRARIES = libpscoll_ucc.la libpscoll_gloo.la
+noinst_lib_LTLIBRARIES = libpscoll_ucc.la libpscoll_gloo.la libpscoll_mpi.la
 
 libpscoll_ucc_la_CPPFLAGS = -DMAKE_COLLOPS_PLUGIN
 libpscoll_ucc_la_SOURCES = pscoll_ucc.c
@@ -38,8 +38,20 @@ pscoll_gloo_plg_LDADD = libpscoll_gloo.la -lgloo -lpthread
 pscoll_gloo_SOURCES = pscoll_gloo.c gloo_wrapper.cc gloo_wrapper.h
 pscoll_gloo_LDADD = $(LDADD) -lgloo -lpthread
 
-noinst_PROGRAMS =  \
-    pscoll_ucc     \
-    pscoll_ucc_plg \
-    pscoll_gloo    \
-    pscoll_gloo_plg
+libpscoll_mpi_la_CPPFLAGS = -DMAKE_COLLOPS_PLUGIN
+libpscoll_mpi_la_SOURCES = pscoll_mpi.c
+libpscoll_mpi_la_LDFLAGS = -module -avoid-version -shared
+
+pscoll_mpi_plg_CPPFLAGS = $(AM_CPPFLAGS) -DUSE_COLLOPS_PLUGIN
+pscoll_mpi_plg_SOURCES = pscoll_mpi.c
+pscoll_mpi_plg_LDADD = libpscoll_mpi.la
+
+pscoll_mpi_SOURCES = pscoll_mpi.c
+
+noinst_PROGRAMS =   \
+    pscoll_ucc      \
+    pscoll_ucc_plg  \
+    pscoll_gloo     \
+    pscoll_gloo_plg \
+    pscoll_mpi      \
+    pscoll_mpi_plg
