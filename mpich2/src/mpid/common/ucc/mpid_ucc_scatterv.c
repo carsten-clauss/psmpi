@@ -20,9 +20,10 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
                                                    int root, MPIR_Comm * comm_ptr,
                                                    MPIDI_common_ucc_req_t * req)
 {
-    bool is_inplace = (rbuf == MPI_IN_PLACE);
     int comm_rank = MPIR_Comm_rank(comm_ptr);
     int comm_size = MPIR_Comm_size(comm_ptr);
+    bool is_root = (comm_rank == root);
+    bool is_inplace = (rbuf == MPI_IN_PLACE);
     bool is_large_counts = (sizeof(MPI_Aint) * 8 == 64);
 
     ucc_datatype_t ucc_sdt = MPIDI_COMMON_UCC_DTYPE_NULL;
@@ -30,7 +31,7 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
 
     uint64_t flags = 0;
 
-    if (comm_rank == root) {
+    if (is_root) {
         ucc_sdt = mpidi_mpi_dtype_to_ucc_dtype(sdtype);
         if (!is_inplace) {
             ucc_rdt = mpidi_mpi_dtype_to_ucc_dtype(rdtype);
@@ -59,7 +60,7 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
         goto fallback;
     }
 
-    if (is_inplace) {
+    if (is_root && is_inplace) {
         flags |= UCC_COLL_ARGS_FLAG_IN_PLACE;
     }
 
@@ -90,7 +91,7 @@ static inline ucc_status_t mpidi_ucc_scatterv_init(const void *sbuf, const MPI_A
                      }
     };
 
-    if (comm_rank == root) {
+    if (is_root) {
         if (is_inplace) {
             MPIDI_COMMON_UCC_VERBOSE_COLLOP_POST_REQ(scatterv, "comm %p, comm_id %u, comm_size %d"
                                                      ", INPLACE, sdtype %s, root %d (me)",
