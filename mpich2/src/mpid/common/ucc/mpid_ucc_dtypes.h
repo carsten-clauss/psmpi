@@ -417,7 +417,11 @@ static inline void mpidi_ucc_dytpe_packing_recv_done(void *rbuf, MPI_Aint rcount
                                                      MPI_Datatype mpi_dtype, int num_procs,
                                                      MPIDI_common_ucc_req_t * req)
 {
-    if (req->rbuf_tmp && !req->rdispls_tmp) {
+    if (req->rbuf_tmp && (req->rbuf_tmp == req->rbuf_free)) {
+        /* Here is where we should end up in response to `mpidi_ucc_dytpe_packing_recv_prep()` if
+         * the data has actually been packed (i.e., not if only the buffer start has been shifted).
+         */
+        MPIR_Assert(!req->rdispls_tmp);
         MPI_Aint actual_unpacked_bytes;
         MPI_Aint size_of_pack_buffer = req->rcounts_tmp[0] * req->basic_size * num_procs;
         int rc = MPIR_Typerep_unpack(req->rbuf_tmp, size_of_pack_buffer, rbuf, rcount * num_procs,
@@ -485,7 +489,11 @@ static inline void mpidi_ucc_dytpe_packing_recv_donev(void *rbuf, const MPI_Aint
                                                       MPI_Datatype mpi_dtype, int num_procs,
                                                       MPIDI_common_ucc_req_t * req)
 {
-    if (req->rbuf_tmp && req->rdispls_tmp) {
+    if (req->rbuf_tmp) {
+        /* Here is where we should end up in response to `mpidi_ucc_dytpe_packing_recv_prepv()`
+         * after the data has been packed and `rcounts_tmp` and `rdispls_tmp` have been set up.
+         */
+        MPIR_Assert(req->rcounts_tmp && req->rdispls_tmp);
         MPI_Aint extent = 0;
         MPI_Aint actual_unpacked_bytes;
         char *buf_ptr = NULL;
