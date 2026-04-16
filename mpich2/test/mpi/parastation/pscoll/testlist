@@ -4,3 +4,5 @@ pscoll_gloo 4
 pscoll_gloo_plg 4 env=MPIR_CVAR_COLLOPS_PLUGINS=./.libs/libpscoll_gloo.so env=MPIR_CVAR_COLLOPS_PRESET=pscoll_gloo
 pscoll_mpi 4
 pscoll_mpi_plg 4 env=MPIR_CVAR_COLLOPS_PLUGINS=./.libs/libpscoll_mpi.so env=MPIR_CVAR_COLLOPS_PRESET=pscoll_mpi
+pscoll_binsum 4
+pscoll_binsum_plg 4 env=MPIR_CVAR_COLLOPS_PLUGINS=./.libs/libpscoll_binsum.so env=MPIR_CVAR_COLLOPS_PRESET=pscoll_binsum

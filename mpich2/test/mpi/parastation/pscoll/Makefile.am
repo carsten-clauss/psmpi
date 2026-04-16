@@ -12,7 +12,7 @@ include $(top_srcdir)/Makefile_single.mtest
 EXTRA_DIST = testlist
 
 noinst_libdir = $(top_srcdir)/parastation/pscoll/
-noinst_lib_LTLIBRARIES = libpscoll_ucc.la libpscoll_gloo.la libpscoll_mpi.la
+noinst_lib_LTLIBRARIES = libpscoll_ucc.la libpscoll_gloo.la libpscoll_mpi.la libpscoll_binsum.la
 
 libpscoll_ucc_la_CPPFLAGS = -DMAKE_COLLOPS_PLUGIN
 libpscoll_ucc_la_SOURCES = pscoll_ucc.c
@@ -48,10 +48,23 @@ pscoll_mpi_plg_LDADD = libpscoll_mpi.la
 
 pscoll_mpi_SOURCES = pscoll_mpi.c
 
+libpscoll_binsum_la_CPPFLAGS = -DMAKE_COLLOPS_PLUGIN
+libpscoll_binsum_la_SOURCES = pscoll_binsum.c
+libpscoll_binsum_la_LDFLAGS = -module -avoid-version -shared
+
+pscoll_binsum_plg_CPPFLAGS = $(AM_CPPFLAGS) -DUSE_COLLOPS_PLUGIN
+pscoll_binsum_plg_SOURCES = pscoll_binsum.c
+pscoll_binsum_plg_LDADD = libpscoll_binsum.la
+
+pscoll_binsum_SOURCES = pscoll_binsum.c
+
 noinst_PROGRAMS =   \
     pscoll_ucc      \
     pscoll_ucc_plg  \
     pscoll_gloo     \
     pscoll_gloo_plg \
     pscoll_mpi      \
-    pscoll_mpi_plg
+    pscoll_mpi_plg  \
+    pscoll_binsum   \
+    pscoll_binsum_plg
+
