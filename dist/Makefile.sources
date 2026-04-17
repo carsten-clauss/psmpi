@@ -4725,6 +4725,7 @@ mpich2/src/binding/c/async_api.txt \
 mpich2/src/binding/c/attr_api.txt \
 mpich2/src/binding/c/binding_api.txt \
 mpich2/src/binding/c/coll_api.txt \
+mpich2/src/binding/c/collops_api.txt \
 mpich2/src/binding/c/comm_api.txt \
 mpich2/src/binding/c/compr_api.txt \
 mpich2/src/binding/c/datatype_api.txt \
@@ -4819,6 +4820,8 @@ mpich2/src/include/mpir_attr.h \
 mpich2/src/include/mpir_attr_generic.h \
 mpich2/src/include/mpir_bsend.h \
 mpich2/src/include/mpir_coll.h \
+mpich2/src/include/mpir_collops.h \
+mpich2/src/include/mpir_collops_dtypes.h \
 mpich2/src/include/mpir_comm.h \
 mpich2/src/include/mpir_compr.h \
 mpich2/src/include/mpir_contextid.h \
@@ -5180,6 +5183,9 @@ mpich2/src/mpi/coll/transports/gentran/gentran_utils.c \
 mpich2/src/mpi/coll/transports/gentran/gentran_utils.h \
 mpich2/src/mpi/coll/transports/gentran/tsp_gentran.c \
 mpich2/src/mpi/coll/transports/tsp_impl.h \
+mpich2/src/mpi/collops/Makefile.mk \
+mpich2/src/mpi/collops/collops_util.c \
+mpich2/src/mpi/collops/register_collops_impl.c \
 mpich2/src/mpi/comm/Makefile.mk \
 mpich2/src/mpi/comm/builtin_comms.c \
 mpich2/src/mpi/comm/comm_impl.c \
@@ -8440,6 +8446,14 @@ mpich2/test/mpi/parastation/msa/ps-test-minimal \
 mpich2/test/mpi/parastation/msa/testlist \
 mpich2/test/mpi/parastation/ps-test-minimal.in \
 mpich2/test/mpi/parastation/ps-test-ucc \
+mpich2/test/mpi/parastation/pscoll/Makefile.am \
+mpich2/test/mpi/parastation/pscoll/gloo_wrapper.cc \
+mpich2/test/mpi/parastation/pscoll/gloo_wrapper.h \
+mpich2/test/mpi/parastation/pscoll/pscoll_binsum.c \
+mpich2/test/mpi/parastation/pscoll/pscoll_gloo.c \
+mpich2/test/mpi/parastation/pscoll/pscoll_mpi.c \
+mpich2/test/mpi/parastation/pscoll/pscoll_ucc.c \
+mpich2/test/mpi/parastation/pscoll/testlist \
 mpich2/test/mpi/parastation/rma/Makefile.am \
 mpich2/test/mpi/parastation/rma/acc_pairtype.c \
 mpich2/test/mpi/parastation/rma/acc_vecsum.c \
