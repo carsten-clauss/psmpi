@@ -20,14 +20,15 @@ static inline ucc_status_t mpidi_ucc_scatter_init(const void *sbuf, MPI_Aint sco
                                                   MPIR_Comm * comm_ptr,
                                                   MPIDI_common_ucc_req_t * req)
 {
-    bool is_inplace = (rbuf == MPI_IN_PLACE);
     int comm_rank = MPIR_Comm_rank(comm_ptr);
     int comm_size = MPIR_Comm_size(comm_ptr);
+    bool is_root = (comm_rank == root);
+    bool is_inplace = (rbuf == MPI_IN_PLACE);
 
     ucc_datatype_t ucc_sdt = MPIDI_COMMON_UCC_DTYPE_NULL;
     ucc_datatype_t ucc_rdt = MPIDI_COMMON_UCC_DTYPE_NULL;
 
-    if (comm_rank == root) {
+    if (is_root) {
         ucc_sdt = mpidi_mpi_dtype_to_ucc_dtype(sdtype);
         if (!is_inplace) {
             ucc_rdt = mpidi_mpi_dtype_to_ucc_dtype(rdtype);
@@ -38,14 +39,14 @@ static inline ucc_status_t mpidi_ucc_scatter_init(const void *sbuf, MPI_Aint sco
 
     if (ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_S(scatter);
-        ucc_sdt = mpidi_ucc_dytpe_packing_send(sbuf, scount, comm_size, sdtype, req);
+        ucc_sdt = mpidi_ucc_dtype_packing_send(sbuf, scount, comm_size, sdtype, req);
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(scatter, ucc_sdt);
     }
 
     if (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_R(scatter);
         ucc_rdt =
-            mpidi_ucc_dytpe_packing_recv_prep(rbuf, rcount, rdtype, 1 /* single recv chunk */ ,
+            mpidi_ucc_dtype_packing_recv_prep(rbuf, rcount, rdtype, 1 /* single recv chunk */ ,
                                               req);
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(scatter, ucc_rdt);
     }
@@ -76,8 +77,7 @@ static inline ucc_status_t mpidi_ucc_scatter_init(const void *sbuf, MPI_Aint sco
                      }
     };
 
-    if (comm_rank == root) {
-
+    if (is_root) {
         if (is_inplace) {
 
             coll.mask = UCC_COLL_ARGS_FIELD_FLAGS;
@@ -123,7 +123,7 @@ int MPIDI_common_ucc_scatter(const void *sbuf, MPI_Aint scount, MPI_Datatype sdt
     MPIDI_COMMON_UCC_WRAPPER_EXECUTE(scatter, sbuf, scount, sdtype, rbuf, rcount, rdtype, root,
                                      comm_ptr, &req);
 
-    mpidi_ucc_dytpe_packing_recv_done(rbuf, rcount, rdtype, 1 /* single recv chunk */ , &req);
+    mpidi_ucc_dtype_packing_recv_done(rbuf, rcount, rdtype, 1 /* single recv chunk */ , &req);
 
     MPIDI_COMMON_UCC_WRAPPER_EXIT(scatter);
 }

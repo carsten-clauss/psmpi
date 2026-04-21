@@ -37,14 +37,14 @@ static inline ucc_status_t mpidi_ucc_alltoallv_init(const void *sbuf, const MPI_
 
     if (ucc_sdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_S(alltoallv);
-        ucc_sdt = mpidi_ucc_dytpe_packing_sendv(sbuf, scounts, sdispls, comm_size, sdtype, req);
+        ucc_sdt = mpidi_ucc_dtype_packing_sendv(sbuf, scounts, sdispls, comm_size, sdtype, req);
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(alltoallv, ucc_sdt);
     }
 
     if (ucc_rdt == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED) {
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_TRY_R(alltoallv);
         ucc_rdt =
-            mpidi_ucc_dytpe_packing_recv_prepv(rbuf, rcounts, rdispls, rdtype, comm_size, req);
+            mpidi_ucc_dtype_packing_recv_prepv(rbuf, rcounts, rdispls, rdtype, comm_size, req);
         MPIDI_COMMON_UCC_VERBOSE_DTYPE_PACKING_RES(allgatherv, ucc_rdt);
     }
 
@@ -120,7 +120,7 @@ int MPIDI_common_ucc_alltoallv(const void *sbuf, const MPI_Aint scounts[], const
     MPIDI_COMMON_UCC_WRAPPER_EXECUTE(alltoallv, sbuf, scounts, sdispls, sdtype, rbuf, rcounts,
                                      rdispls, rdtype, comm_ptr, &req);
 
-    mpidi_ucc_dytpe_packing_recv_donev(rbuf, rcounts, rdispls, rdtype, comm_size, &req);
+    mpidi_ucc_dtype_packing_recv_donev(rbuf, rcounts, rdispls, rdtype, comm_size, &req);
 
     MPIDI_COMMON_UCC_WRAPPER_EXIT(alltoallv);
 

@@ -256,7 +256,7 @@ static inline const char *mpidi_ucc_reduction_op_to_str(ucc_reduction_op_t opera
                              MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED ?       \
                              "success" : "failed");
 
-static inline ucc_datatype_t mpidi_ucc_dytpe_packing_send(const void *sbuf, MPI_Aint scount,
+static inline ucc_datatype_t mpidi_ucc_dtype_packing_send(const void *sbuf, MPI_Aint scount,
                                                           int num_procs, MPI_Datatype mpi_dtype,
                                                           MPIDI_common_ucc_req_t * req)
 {
@@ -306,7 +306,7 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_send(const void *sbuf, MPI_
     goto fn_exit;
 }
 
-static inline ucc_datatype_t mpidi_ucc_dytpe_packing_sendv(const void *sbuf,
+static inline ucc_datatype_t mpidi_ucc_dtype_packing_sendv(const void *sbuf,
                                                            const MPI_Aint * scounts,
                                                            const MPI_Aint * sdispls,
                                                            int num_procs,
@@ -368,7 +368,7 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_sendv(const void *sbuf,
     goto fn_exit;
 }
 
-static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prep(const void *rbuf, MPI_Aint rcount,
+static inline ucc_datatype_t mpidi_ucc_dtype_packing_recv_prep(const void *rbuf, MPI_Aint rcount,
                                                                MPI_Datatype mpi_dtype,
                                                                int num_procs,
                                                                MPIDI_common_ucc_req_t * req)
@@ -413,11 +413,15 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prep(const void *rbuf,
     goto fn_exit;
 }
 
-static inline void mpidi_ucc_dytpe_packing_recv_done(void *rbuf, MPI_Aint rcount,
+static inline void mpidi_ucc_dtype_packing_recv_done(void *rbuf, MPI_Aint rcount,
                                                      MPI_Datatype mpi_dtype, int num_procs,
                                                      MPIDI_common_ucc_req_t * req)
 {
-    if (req->rbuf_tmp && !req->rdispls_tmp) {
+    if (req->rbuf_tmp && (req->rbuf_tmp == req->rbuf_free)) {
+        /* Here is where we should end up in response to `mpidi_ucc_dtype_packing_recv_prep()` if
+         * the data has actually been packed (i.e., not if only the buffer start has been shifted).
+         */
+        MPIR_Assert(!req->rdispls_tmp);
         MPI_Aint actual_unpacked_bytes;
         MPI_Aint size_of_pack_buffer = req->rcounts_tmp[0] * req->basic_size * num_procs;
         int rc = MPIR_Typerep_unpack(req->rbuf_tmp, size_of_pack_buffer, rbuf, rcount * num_procs,
@@ -427,7 +431,7 @@ static inline void mpidi_ucc_dytpe_packing_recv_done(void *rbuf, MPI_Aint rcount
     }
 }
 
-static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prepv(const void *rbuf,
+static inline ucc_datatype_t mpidi_ucc_dtype_packing_recv_prepv(const void *rbuf,
                                                                 const MPI_Aint * rcounts,
                                                                 const MPI_Aint * rdispls,
                                                                 MPI_Datatype mpi_dtype,
@@ -480,12 +484,16 @@ static inline ucc_datatype_t mpidi_ucc_dytpe_packing_recv_prepv(const void *rbuf
     goto fn_exit;
 }
 
-static inline void mpidi_ucc_dytpe_packing_recv_donev(void *rbuf, const MPI_Aint rcounts[],
+static inline void mpidi_ucc_dtype_packing_recv_donev(void *rbuf, const MPI_Aint rcounts[],
                                                       const MPI_Aint rdispls[],
                                                       MPI_Datatype mpi_dtype, int num_procs,
                                                       MPIDI_common_ucc_req_t * req)
 {
-    if (req->rbuf_tmp && req->rdispls_tmp) {
+    if (req->rbuf_tmp) {
+        /* Here is where we should end up in response to `mpidi_ucc_dtype_packing_recv_prepv()`
+         * after the data has been packed and `rcounts_tmp` and `rdispls_tmp` have been set up.
+         */
+        MPIR_Assert(req->rcounts_tmp && req->rdispls_tmp);
         MPI_Aint extent = 0;
         MPI_Aint actual_unpacked_bytes;
         char *buf_ptr = NULL;
