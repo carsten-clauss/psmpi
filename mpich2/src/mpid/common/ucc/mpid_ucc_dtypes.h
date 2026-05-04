@@ -275,12 +275,20 @@ static inline ucc_datatype_t mpidi_ucc_dtype_packing_send(const void *sbuf, MPI_
     req->basic_size = MPIR_Datatype_get_basic_size(basic_dtype);
 
     ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(basic_dtype);
-    if (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED)
+    if (data_size && (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED))
         goto fn_exit;
 
     req->scounts_tmp = MPL_malloc(sizeof(MPI_Aint), MPL_MEM_COLL);
     MPIR_Assert(req->scounts_tmp);
-    if (contig || !data_size) {
+
+    if (!data_size) {
+        /* This is a zero-sized message. Treat it as if it were zero elements of MPI_BYTE */
+        req->scounts_tmp[0] = 0;
+        ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(MPI_BYTE);
+        goto fn_exit;
+    }
+
+    if (contig) {
         req->sbuf_tmp = (char *) sbuf + true_lb;
         req->scounts_tmp[0] = data_size / req->basic_size;
         MPIR_Assert((data_size % req->basic_size) == 0);
@@ -320,23 +328,35 @@ static inline ucc_datatype_t mpidi_ucc_dtype_packing_sendv(const void *sbuf,
     MPI_Datatype basic_dtype = MPI_DATATYPE_NULL;
     MPI_Aint actual_packed_bytes;
     MPI_Aint size_of_pack_buffer;
+    MPI_Aint dtype_size;
 
     if (MPIDI_common_ucc_priv.dtype_packing_disabled)
         goto fn_fail;
 
+    MPIR_Datatype_get_size_macro(mpi_dtype, dtype_size);
     MPIR_Datatype_get_basic_type(mpi_dtype, basic_dtype);
     req->basic_size = MPIR_Datatype_get_basic_size(basic_dtype);
 
     ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(basic_dtype);
-    if (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED)
+    if (dtype_size && (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED))
         goto fn_exit;
 
     req->scounts_tmp = MPL_malloc(num_procs * sizeof(MPI_Aint), MPL_MEM_COLL);
     MPIR_Assert(req->scounts_tmp);
     req->sdispls_tmp = MPL_malloc(num_procs * sizeof(MPI_Aint), MPL_MEM_COLL);
     MPIR_Assert(req->sdispls_tmp);
-    MPIR_Datatype_get_extent_macro(mpi_dtype, extent);
 
+    if (!dtype_size) {
+        /* This is a zero-sized datatype. Treat it as if it were zero elements of MPI_BYTE */
+        for (int i = 0; i < num_procs; i++) {
+            req->scounts_tmp[i] = 0;
+            req->sdispls_tmp[i] = 0;
+        }
+        ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(MPI_BYTE);
+        goto fn_exit;
+    }
+
+    MPIR_Datatype_get_extent_macro(mpi_dtype, extent);
     for (int i = 0; i < num_procs; i++) {
         buf_displ = (char *) sbuf + sdispls[i] * extent;
         MPIR_Pack_size(scounts[i], mpi_dtype, &size_of_pack_buffer);
@@ -388,12 +408,20 @@ static inline ucc_datatype_t mpidi_ucc_dtype_packing_recv_prep(const void *rbuf,
     req->basic_size = MPIR_Datatype_get_basic_size(basic_dtype);
 
     ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(basic_dtype);
-    if (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED)
+    if (data_size && (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED))
         goto fn_exit;
 
     req->rcounts_tmp = MPL_malloc(sizeof(MPI_Aint), MPL_MEM_COLL);
     MPIR_Assert(req->rcounts_tmp);
-    if (contig || !data_size) {
+
+    if (!data_size) {
+        /* This is a zero-sized message. Treat it as if it were zero elements of MPI_BYTE */
+        req->rcounts_tmp[0] = 0;
+        ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(MPI_BYTE);
+        goto fn_exit;
+    }
+
+    if (contig) {
         req->rbuf_tmp = (char *) rbuf + true_lb;
         req->rcounts_tmp[0] = data_size / req->basic_size;
         MPIR_Assert((data_size % req->basic_size) == 0);
@@ -439,19 +467,20 @@ static inline ucc_datatype_t mpidi_ucc_dtype_packing_recv_prepv(const void *rbuf
                                                                 MPIDI_common_ucc_req_t * req)
 {
     ucc_datatype_t ucc_dtype;
-    MPI_Aint *len_vec;
+    MPI_Aint *len_vec = NULL;
     MPI_Aint total_len = 0;
     MPI_Datatype basic_dtype = MPI_DATATYPE_NULL;
     MPI_Aint size_of_pack_buffer;
+    MPI_Aint dtype_size;
 
     if (MPIDI_common_ucc_priv.dtype_packing_disabled)
         goto fn_fail;
 
+    MPIR_Datatype_get_size_macro(mpi_dtype, dtype_size);
     MPIR_Datatype_get_basic_type(mpi_dtype, basic_dtype);
     req->basic_size = MPIR_Datatype_get_basic_size(basic_dtype);
-
     ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(basic_dtype);
-    if (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED)
+    if (dtype_size && (ucc_dtype == MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED))
         goto fn_exit;
 
     len_vec = MPL_malloc(num_procs * sizeof(MPI_Aint), MPL_MEM_COLL);
@@ -460,6 +489,16 @@ static inline ucc_datatype_t mpidi_ucc_dtype_packing_recv_prepv(const void *rbuf
     MPIR_Assert(req->rcounts_tmp);
     req->rdispls_tmp = MPL_malloc(num_procs * sizeof(MPI_Aint), MPL_MEM_COLL);
     MPIR_Assert(req->rdispls_tmp);
+
+    if (!dtype_size) {
+        /* This is a zero-sized datatype. Treat it as if it were zero elements of MPI_BYTE */
+        for (int i = 0; i < num_procs; i++) {
+            req->rcounts_tmp[i] = 0;
+            req->rdispls_tmp[i] = 0;
+        }
+        ucc_dtype = mpidi_mpi_dtype_to_ucc_dtype(MPI_BYTE);
+        goto fn_exit;
+    }
 
     for (int i = 0; i < num_procs; i++) {
         MPIR_Pack_size(rcounts[i], mpi_dtype, &size_of_pack_buffer);
@@ -475,9 +514,10 @@ static inline ucc_datatype_t mpidi_ucc_dtype_packing_recv_prepv(const void *rbuf
         MPIR_Assert((len_vec[i] % req->basic_size) == 0);
         req->rdispls_tmp[i] = i ? (req->rdispls_tmp[i - 1] + len_vec[i - 1] / req->basic_size) : 0;
     }
-    MPL_free(len_vec);
 
   fn_exit:
+    if (len_vec)
+        MPL_free(len_vec);
     return ucc_dtype;
   fn_fail:
     ucc_dtype = MPIDI_COMMON_UCC_DTYPE_UNSUPPORTED;
