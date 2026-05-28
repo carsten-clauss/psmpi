@@ -150,7 +150,7 @@ void mpid_env_init(void)
 
     /* enable_direct_connect_spawn defaults to enable_direct_connect */
     MPIDI_Process.env.enable_direct_connect_spawn = MPIDI_Process.env.enable_direct_connect;
-    pscom_env_get_uint(&MPIDI_Process.env.enable_direct_connect, "PSP_DIRECT_CONNECT_SPAWN");
+    pscom_env_get_uint(&MPIDI_Process.env.enable_direct_connect_spawn, "PSP_DIRECT_CONNECT_SPAWN");
 
     /* Set the node id of this rank
      * Default: Use pscom's node id (MPIDI_PSP_NODE_ID_UNDEFINED)
