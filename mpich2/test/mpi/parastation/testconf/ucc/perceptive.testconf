@@ -4,3 +4,6 @@ SCRIPTDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPTDIR}/../ucc.testconf
 export PSP_UCC_VERBOSE=1
 export MPIR_CVAR_CH4_UCC_VERBOSITY_LEVEL=1
+export UCC_LOG_LEVEL=ERROR
+# Since psmgmt does not automatically export all variables, we have to do so explicitly in such cases:
+mpiexec --exports= -np 1 true 2> /dev/null && export MPITEST_MPIEXECARG="${MPITEST_MPIEXECARG} --exports=MPIR_CVAR_CH4_UCC_VERBOSITY_LEVEL"
